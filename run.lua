@@ -8,6 +8,7 @@ require 'glapp.view'.useBuiltinMatrixMath = true -- do this before imguiapp.with
 local App = require 'imguiapp.withorbit'()
 local symmath = require 'symmath'
 local ffi = require 'ffi'
+local vec2f = require 'vec-ffi.vec2f'
 local vec3f = require 'vec-ffi.vec3f'
 local vec4f = require 'vec-ffi.vec4f'
 local vector = require 'ffi.cpp.vector'
@@ -15,6 +16,8 @@ App.title = 'seashell'
 
 function App:initGL(...)
 	App.super.initGL(self, ...)
+
+	self.view.zfar = 1000
 
 	-- uniforms
 	self.guivars = table{
@@ -121,7 +124,7 @@ print'normalcode'
 		vertexCode = template([[
 #version 460
 #define M_PI <?=('%.50f'):format(math.pi)?>
-in vec3 vtx;
+in vec2 vtx;
 out vec3 normalv;
 
 uniform mat4 mvMat, projMat;
@@ -163,7 +166,7 @@ void main() {
 	local m = 200
 	local n = 200
 
-	self.vtxVec = vector'vec3f_t'
+	self.vtxVec = vector'vec2f_t'
 	self.vtxVec:reserve((m + 1) * (n + 1))
 	self.indexVec = vector'int'
 	self.indexVec:reserve(m * n * 3)
@@ -172,7 +175,7 @@ void main() {
 		for i=0,m do
 			local u = i/m
 			local v = j/n
-			self.vtxVec:emplace_back()[0]:set(u, v, 0)
+			self.vtxVec:emplace_back()[0]:set(u, v)
 			if i < m and j < n then
 				self.indexVec:emplace_back()[0] = i + (m+1) * j
 				self.indexVec:emplace_back()[0] = (i+1) + (m+1) * j
@@ -218,14 +221,14 @@ void main() {
 				buffer = self.vtxBuf,
 			},
 		},
-		createVAO = true,
+		--createVAO = true,
 	}
 
 	-- WHY ISNT THIS BEING DONE ON INIT?!?!?!?!?
 	local shader = self.shader
 	self.obj.vao:bind()
 	self.vtxBuf:bind()
-	gl.glVertexAttribPointer(shader.attrs.vtx.loc, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, ffi.cast('void*', 0))
+	gl.glVertexAttribPointer(shader.attrs.vtx.loc, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, ffi.cast('void*', 0))
 	gl.glEnableVertexAttribArray(shader.attrs.vtx.loc)
 	self.vtxBuf:unbind()
 	self.obj.vao:unbind()
