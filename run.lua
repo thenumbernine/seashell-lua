@@ -16,7 +16,17 @@ App.title = 'seashell'
 function App:initGL(...)
 	App.super.initGL(self, ...)
 
-	
+	-- uniforms
+	self.guivars = table{
+		shellSurfaceAmplitude = .01,
+		shellSurfacePeriod = 40,
+		shellRot = 7,
+		shellExpScaleMin = -3,
+		shellExpScaleMax = 3,
+	}
+	local symvars = self.guivars:map(function(v,k)
+		return symmath.var(k), k
+	end)
 
 	-- chart coordinates
 	local u = symmath.var'u'
@@ -33,7 +43,7 @@ function App:initGL(...)
 	local x = symmath.Matrix{
 		1 
 		-- give the circle profile some oscillations...
-		+ .01 * symmath.cos(2 * symmath.pi * 40 * u),
+		+ symvars.shellSurfaceAmplitude  * symmath.cos(2 * symmath.pi * symvars.shellSurfacePeriod * u),
 		0,
 		0
 	}:T()
@@ -43,14 +53,14 @@ function App:initGL(...)
 	x[2][1] = x[2][1] + 1
 	print(x)
 	
-	local Rz = (7 * v * symmath.Matrix(
+	local Rz = (symvars.shellRot * v * symmath.Matrix(
 		{0, 0, 0},
 		{0, 0, -1},
 		{0, 1, 0}
 	))():exp()
 	print(Rz)
 
-	x = (symmath.exp(-3 * (1 - v) + 3 * v) * Rz * x)()
+	x = (symmath.exp(symvars.shellExpScaleMin * (1 - v) + symvars.shellExpScaleMax * v) * Rz * x)()
 	print(x)
 
 	local function compileVec(x)
@@ -113,7 +123,14 @@ print'normalcode'
 #define M_PI <?=('%.50f'):format(math.pi)?>
 in vec3 vtx;
 out vec3 normalv;
+
 uniform mat4 mvMat, projMat;
+
+<? for k,v in pairs(self.guivars) do
+?>uniform float <?=k?>;
+<? end
+?>
+
 void main() {
 	vec3 normal;
 	{
@@ -128,6 +145,7 @@ void main() {
 	gl_Position = projMat * (mvMat * vec4(pos, 1.));
 }
 ]], {
+	self = self,
 	poscode = poscode,
 	normalcode = normalcode,
 }),
@@ -141,12 +159,14 @@ void main() {
 }
 ]],
 	}:useNone()
+	
+	local m = 200
+	local n = 200
 
 	self.vtxVec = vector'vec3f_t'
+	self.vtxVec:reserve((m + 1) * (n + 1))
 	self.indexVec = vector'int'
-	
-	local m = 100
-	local n = 100
+	self.indexVec:reserve(m * n * 3)
 
 	for j=0,n do
 		for i=0,m do
@@ -220,6 +240,9 @@ function App:update()
 	shader:use()
 	gl.glUniformMatrix4fv(shader.uniforms.mvMat.loc, 1, gl.GL_FALSE, self.view.mvMat.ptr)
 	gl.glUniformMatrix4fv(shader.uniforms.projMat.loc, 1, gl.GL_FALSE, self.view.projMat.ptr)
+	for k,v in pairs(self.guivars) do
+		gl.glUniform1f(shader.uniforms[k].loc, v)
+	end
 	shader:useNone()
 
 	self.obj:draw()
@@ -231,6 +254,9 @@ function App:updateGUI()
 	local mesh = self.mesh
 	if ig.igBeginMainMenuBar() then
 		if ig.igBeginMenu'Settings' then
+			for k,v in pairs(self.guivars) do
+				ig.luatableInputFloatAsText(k, self.guivars, k)
+			end
 			ig.igColorPicker3('background color', self.bgcolor.s, 0)
 			ig.igEndMenu()
 		end
