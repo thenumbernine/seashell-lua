@@ -204,20 +204,9 @@ void main() {
 		geometry = self.geometry,
 		program = self.shader,
 		attrs = {
-			pos = {
-				buffer = self.vtxBuf,
-			},
+			vtx = self.vtxBuf,
 		},
-		--createVAO = true,
 	}
-
-	-- WHY ISNT THIS BEING DONE ON INIT?!?!?!?!?
-	self.obj.vao:bind()
-	self.vtxBuf:bind()
-	gl.glVertexAttribPointer(self.obj.program.attrs.vtx.loc, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, ffi.cast('void*', 0))
-	gl.glEnableVertexAttribArray(self.obj.program.attrs.vtx.loc)
-	self.vtxBuf:unbind()
-	self.obj.vao:unbind()
 end
 
 function App:update()
