@@ -65,8 +65,6 @@ function App:initGL(...)
 
 	-- offset back to center
 	x[2][1] = x[2][1] - 1
-
-	self.xfuncs = compileVec(x:T()[1])
 	
 	symmath.export.C.numberType = 'float'
 	local poscode = symmath.export.C:toCode{
@@ -81,12 +79,26 @@ function App:initGL(...)
 			{['vtx.y'] = v},
 		},
 	}
+print'poscode'	
 	print(poscode)
 	
 	local df_du = x:diff(u)()
 	local df_dv = x:diff(v)()
 	local n = df_du:T()[1]:cross( df_dv:T()[1] )
-	self.nfuncs = compileVec(n)
+	local normalcode = symmath.export.C:toCode{
+		assignOnly = true,
+		output = {
+			{['normal.x'] = n[1]},
+			{['normal.y'] = n[2]},
+			{['normal.z'] = n[3]},
+		},
+		input = {
+			{['vtx.x'] = u},
+			{['vtx.y'] = v},
+		},
+	}
+print'normalcode'
+	print(normalcode)
 
 	gl.glEnable(gl.GL_NORMALIZE)
 	gl.glEnable(gl.GL_LIGHTING)
@@ -100,18 +112,24 @@ function App:initGL(...)
 #version 460
 #define M_PI <?=('%.50f'):format(math.pi)?>
 in vec3 vtx;
-in vec3 normal;
 out vec3 normalv;
 uniform mat4 mvMat, projMat;
 void main() {
+	vec3 normal;
+	{
+<?=normalcode?>
+	}
 	normalv = normalize((mvMat * vec4(normal, 0)).xyz);
 	
 	vec3 pos;
+	{
 <?=poscode?>
+	}
 	gl_Position = projMat * (mvMat * vec4(pos, 1.));
 }
 ]], {
 	poscode = poscode,
+	normalcode = normalcode,
 }),
 		fragmentCode = [[
 #version 460
@@ -125,7 +143,6 @@ void main() {
 	}:useNone()
 
 	self.vtxVec = vector'vec3f_t'
-	self.normalVec = vector'vec3f_t'
 	self.indexVec = vector'int'
 	
 	local m = 100
@@ -135,19 +152,7 @@ void main() {
 		for i=0,m do
 			local u = i/m
 			local v = j/n
-			self.normalVec:emplace_back()[0]:set(
-				self.nfuncs[1](u, v),
-				self.nfuncs[2](u, v),
-				self.nfuncs[3](u, v)
-			)
-			self.vtxVec:emplace_back()[0]:set(
-				u, v, 0
-				--[[
-				self.xfuncs[1](u, v),
-				self.xfuncs[2](u, v),
-				self.xfuncs[3](u, v)
-				--]]
-			)
+			self.vtxVec:emplace_back()[0]:set(u, v, 0)
 			if i < m and j < n then
 				self.indexVec:emplace_back()[0] = i + (m+1) * j
 				self.indexVec:emplace_back()[0] = (i+1) + (m+1) * j
@@ -164,12 +169,6 @@ void main() {
 		data = self.vtxVec.v,
 		size = ffi.sizeof(self.vtxVec.type) * self.vtxVec.size,
 	}:unbind()
-
-	self.normalBuf = GLArrayBuffer{
-		data = self.normalVec.v,
-		size = ffi.sizeof(self.normalVec.type) * self.normalVec.size,
-	}:unbind()
-
 
 	local GLElementArrayBuffer = require 'gl.elementarraybuffer'
 	self.indexBuf = GLElementArrayBuffer{
@@ -198,10 +197,6 @@ void main() {
 			pos = {
 				buffer = self.vtxBuf,
 			},
-			normal = {
-				buffer = self.normalBuf,
-				normalize = true,
-			},
 		},
 		createVAO = true,
 	}
@@ -213,10 +208,6 @@ void main() {
 	gl.glVertexAttribPointer(shader.attrs.vtx.loc, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, ffi.cast('void*', 0))
 	gl.glEnableVertexAttribArray(shader.attrs.vtx.loc)
 	self.vtxBuf:unbind()
-	self.normalBuf:bind()
-	gl.glVertexAttribPointer(shader.attrs.normal.loc, 3, gl.GL_FLOAT, gl.GL_TRUE, 0, ffi.cast('void*', 0))
-	gl.glEnableVertexAttribArray(shader.attrs.normal.loc)
-	self.normalBuf:unbind()
 	self.obj.vao:unbind()
 	
 end
