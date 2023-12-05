@@ -1,5 +1,6 @@
 #!/usr/bin/env luajit
 local table = require 'ext.table'
+local template = require 'template'
 local gl = require 'gl'
 local GLProgram = require 'gl.program'
 local ig = require 'imgui'
@@ -68,16 +69,19 @@ function App:initGL(...)
 	self.xfuncs = compileVec(x:T()[1])
 	
 	symmath.export.C.numberType = 'float'
-	print(symmath.export.C:toCode{
+	local poscode = symmath.export.C:toCode{
 		assignOnly = true,
 		output = {
 			{['pos.x'] = x[1][1]},
 			{['pos.y'] = x[2][1]},
 			{['pos.z'] = x[3][1]},
 		},
-		input = {u, v},
-	})
-os.exit()
+		input = {
+			{['vtx.x'] = u},
+			{['vtx.y'] = v},
+		},
+	}
+	print(poscode)
 	
 	local df_du = x:diff(u)()
 	local df_dv = x:diff(v)()
@@ -92,17 +96,23 @@ os.exit()
 	self.bgcolor = vec4f(.3,.3,.3,1)
 
 	self.shader = GLProgram{
-		vertexCode = [[
+		vertexCode = template([[
 #version 460
-in vec4 pos;
+#define M_PI <?=('%.50f'):format(math.pi)?>
+in vec3 vtx;
 in vec3 normal;
 out vec3 normalv;
 uniform mat4 mvMat, projMat;
 void main() {
 	normalv = normalize((mvMat * vec4(normal, 0)).xyz);
-	gl_Position = projMat * (mvMat * pos);
+	
+	vec3 pos;
+<?=poscode?>
+	gl_Position = projMat * (mvMat * vec4(pos, 1.));
 }
-]],
+]], {
+	poscode = poscode,
+}),
 		fragmentCode = [[
 #version 460
 in vec3 normalv;
@@ -131,9 +141,12 @@ void main() {
 				self.nfuncs[3](u, v)
 			)
 			self.vtxVec:emplace_back()[0]:set(
+				u, v, 0
+				--[[
 				self.xfuncs[1](u, v),
 				self.xfuncs[2](u, v),
 				self.xfuncs[3](u, v)
+				--]]
 			)
 			if i < m and j < n then
 				self.indexVec:emplace_back()[0] = i + (m+1) * j
@@ -197,8 +210,8 @@ void main() {
 	local shader = self.shader
 	self.obj.vao:bind()
 	self.vtxBuf:bind()
-	gl.glVertexAttribPointer(shader.attrs.pos.loc, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, ffi.cast('void*', 0))
-	gl.glEnableVertexAttribArray(shader.attrs.pos.loc)
+	gl.glVertexAttribPointer(shader.attrs.vtx.loc, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, ffi.cast('void*', 0))
+	gl.glEnableVertexAttribArray(shader.attrs.vtx.loc)
 	self.vtxBuf:unbind()
 	self.normalBuf:bind()
 	gl.glVertexAttribPointer(shader.attrs.normal.loc, 3, gl.GL_FLOAT, gl.GL_TRUE, 0, ffi.cast('void*', 0))
