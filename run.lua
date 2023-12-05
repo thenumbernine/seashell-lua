@@ -26,8 +26,11 @@ function App:initGL(...)
 		shellRot = 7,
 		shellExpScaleMin = -3,
 		shellExpScaleMax = 3,
+		pointAmpl = 0,
+		pointExpScaleMin = 1,
+		pointExpScaleMax = 10,
 	}
-	local symvars = self.guivars:map(function(v,k)
+	local vars = self.guivars:map(function(v,k)
 		return symmath.var(k), k
 	end)
 
@@ -46,7 +49,7 @@ function App:initGL(...)
 	local x = symmath.Matrix{
 		1 
 		-- give the circle profile some oscillations...
-		+ symvars.shellSurfaceAmplitude  * symmath.cos(2 * symmath.pi * symvars.shellSurfacePeriod * u),
+		+ vars.shellSurfaceAmplitude  * symmath.cos(2 * symmath.pi * vars.shellSurfacePeriod * u),
 		0,
 		0
 	}:T()
@@ -56,25 +59,18 @@ function App:initGL(...)
 	x[2][1] = x[2][1] + 1
 	print(x)
 	
-	local Rz = (symvars.shellRot * v * symmath.Matrix(
+	local Rz = (vars.shellRot * v * symmath.Matrix(
 		{0, 0, 0},
 		{0, 0, -1},
 		{0, 1, 0}
 	))():exp()
 	print(Rz)
 
-	x = (symmath.exp(symvars.shellExpScaleMin * (1 - v) + symvars.shellExpScaleMax * v) * Rz * x)()
-	print(x)
+	x = (symmath.exp(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v) * Rz * x)()
+	
+	x[1][1] = x[1][1] + vars.pointAmpl * symmath.exp(vars.pointExpScaleMin * (1 - v) + vars.pointExpScaleMax * v)
 
-	local function compileVec(x)
-		local fs = table()
-		for i=1,#x do
-			local code
-			fs[i], code = x[i]:compile{u, v}
-			print(code)
-		end
-		return fs
-	end
+	print(x)
 
 	-- offset back to center
 	x[2][1] = x[2][1] - 1
@@ -187,33 +183,23 @@ void main() {
 		end
 	end
 
-	local GLArrayBuffer = require 'gl.arraybuffer'
-	self.vtxBuf = GLArrayBuffer{
+	self.vtxBuf = require 'gl.arraybuffer'{
 		data = self.vtxVec.v,
 		size = ffi.sizeof(self.vtxVec.type) * self.vtxVec.size,
 	}:unbind()
 
-	local GLElementArrayBuffer = require 'gl.elementarraybuffer'
-	self.indexBuf = GLElementArrayBuffer{
-		data = self.indexVec.v,
-		size = ffi.sizeof(self.indexVec.type) * self.indexVec.size,
-	}:unbind()
-	-- used by gl.geometry:draw but not set in gl.buffer ... hmm ... TODO ...
-	self.indexBuf.type = gl.GL_UNSIGNED_INT
-
-	local GLGeometry = require 'gl.geometry'
-	self.geometry = GLGeometry{
+	self.geometry = require 'gl.geometry'{
 		mode = gl.GL_TRIANGLES,
 		vertexes = self.vtxBuf,
+		indexes = require 'gl.elementarraybuffer'{
+			data = self.indexVec.v,
+			size = ffi.sizeof(self.indexVec.type) * self.indexVec.size,
+			type = gl.GL_UNSIGNED_INT,
+		}:unbind(),
 		count = self.indexVec.size,
-		indexes = self.indexBuf,
-		-- hmm, default value is 0 for glDrawArrays, but glDrawElements expects a void* ... 
-		offset = ffi.cast('void*', nil),
 	}
 
-	local GLAttribute = require 'gl.attribute'
-	local GLSceneObject = require 'gl.sceneobject'
-	self.obj = GLSceneObject{
+	self.obj = require 'gl.sceneobject'{
 		geometry = self.geometry,
 		program = self.shader,
 		attrs = {
@@ -225,14 +211,12 @@ void main() {
 	}
 
 	-- WHY ISNT THIS BEING DONE ON INIT?!?!?!?!?
-	local shader = self.shader
 	self.obj.vao:bind()
 	self.vtxBuf:bind()
-	gl.glVertexAttribPointer(shader.attrs.vtx.loc, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, ffi.cast('void*', 0))
-	gl.glEnableVertexAttribArray(shader.attrs.vtx.loc)
+	gl.glVertexAttribPointer(self.obj.program.attrs.vtx.loc, 2, gl.GL_FLOAT, gl.GL_FALSE, 0, ffi.cast('void*', 0))
+	gl.glEnableVertexAttribArray(self.obj.program.attrs.vtx.loc)
 	self.vtxBuf:unbind()
 	self.obj.vao:unbind()
-	
 end
 
 function App:update()
