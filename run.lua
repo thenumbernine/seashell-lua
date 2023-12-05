@@ -68,7 +68,8 @@ function App:initGL(...)
 
 	x = (symmath.exp(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v) * Rz * x)()
 	
-	x[1][1] = x[1][1] + vars.pointAmpl * symmath.exp(vars.pointExpScaleMin * (1 - v) + vars.pointExpScaleMax * v)
+	x[1][1] = x[1][1] + vars.pointAmpl 
+		* symmath.exp(vars.pointExpScaleMin * (1 - v) + vars.pointExpScaleMax * v)
 
 	print(x)
 
@@ -227,9 +228,7 @@ function App:update()
 	shader:use()
 	gl.glUniformMatrix4fv(shader.uniforms.mvMat.loc, 1, gl.GL_FALSE, self.view.mvMat.ptr)
 	gl.glUniformMatrix4fv(shader.uniforms.projMat.loc, 1, gl.GL_FALSE, self.view.projMat.ptr)
-	for k,v in pairs(self.guivars) do
-		gl.glUniform1f(shader.uniforms[k].loc, v)
-	end
+	shader:setUniforms(self.guivars)
 	shader:useNone()
 
 	self.obj:draw()
