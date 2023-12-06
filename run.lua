@@ -1,5 +1,8 @@
 #!/usr/bin/env luajit
 local table = require 'ext.table'
+local tolua = require 'ext.tolua'
+local fromlua = require 'ext.fromlua'
+local path = require 'ext.path'
 local template = require 'template'
 local gl = require 'gl'
 local GLProgram = require 'gl.program'
@@ -12,6 +15,7 @@ local vec2f = require 'vec-ffi.vec2f'
 local vec3f = require 'vec-ffi.vec3f'
 local vec4f = require 'vec-ffi.vec4f'
 local vector = require 'ffi.cpp.vector'
+local Targets = require 'make.targets'
 App.title = 'seashell'
 
 function App:initGL(...)
@@ -27,88 +31,108 @@ function App:initGL(...)
 		shellExpScaleMin = -3,
 		shellExpScaleMax = 3,
 		pointAmpl = 0,
-		pointExpScaleMin = 1,
-		pointExpScaleMax = 10,
+	
+		gridWidth = 2000,
+		gridHeight = 2000,
 	}
-	local vars = self.guivars:map(function(v,k)
-		return symmath.var(k), k
-	end)
 
-	-- chart coordinates
-	local u = symmath.var'u'
-	local v = symmath.var'v'
+	local cachefile = 'cached-eqns.lua'
+	Targets{verbose=true, {
+		dsts = {cachefile},
+		srcs = {'run.lua'},		-- cache as long as this file hasn't changed
+		rule = function()
 
-	local Rx = (2 * symmath.pi * u * symmath.Matrix(
-		{0, -1, 0},
-		{1, 0, 0},
-		{0, 0, 0}
-	))():exp()
-	print(Rx)
+			local vars = self.guivars:map(function(v,k)
+				return symmath.var(k), k
+			end)
 
-	-- start with our radius ...
-	local x = symmath.Matrix{
-		1 
-		-- give the circle profile some oscillations...
-		+ vars.shellSurfaceAmplitude  * symmath.cos(2 * symmath.pi * vars.shellSurfacePeriod * u),
-		0,
-		0
-	}:T()
-	-- get a unit circle around origin
-	local x = (Rx * x)()
-	-- offset it so the bottom is at origin
-	x[2][1] = x[2][1] + 1
-	print(x)
-	
-	local Rz = (vars.shellRot * v * symmath.Matrix(
-		{0, 0, 0},
-		{0, 0, -1},
-		{0, 1, 0}
-	))():exp()
-	print(Rz)
+			-- chart coordinates
+			local u = symmath.var'u'
+			local v = symmath.var'v'
 
-	x = (symmath.exp(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v) * Rz * x)()
-	
-	x[1][1] = x[1][1] + vars.pointAmpl 
-		* symmath.exp(vars.pointExpScaleMin * (1 - v) + vars.pointExpScaleMax * v)
+			local Rx = (2 * symmath.pi * u * symmath.Matrix(
+				{0, -1, 0},
+				{1, 0, 0},
+				{0, 0, 0}
+			))():exp()
+			print(Rx)
 
-	print(x)
+			-- start with our radius ...
+			local x = symmath.Matrix{
+				1
+				-- give the circle profile some oscillations...
+				+ vars.shellSurfaceAmplitude  * symmath.cos(2 * symmath.pi * vars.shellSurfacePeriod * u),
+				0,
+				0
+			}:T()
+			-- get a unit circle around origin
+			local x = (Rx * x)()
+			-- offset it so the bottom is at origin
+			x[2][1] = x[2][1] + 1
+			print(x)
 
-	-- offset back to center
-	x[2][1] = x[2][1] - 1
-	
-	symmath.export.C.numberType = 'float'
-	local poscode = symmath.export.C:toCode{
-		assignOnly = true,
-		output = {
-			{['pos.x'] = x[1][1]},
-			{['pos.y'] = x[2][1]},
-			{['pos.z'] = x[3][1]},
-		},
-		input = {
-			{['vtx.x'] = u},
-			{['vtx.y'] = v},
-		},
-	}
-print'poscode'	
-	print(poscode)
-	
-	local df_du = x:diff(u)()
-	local df_dv = x:diff(v)()
-	local n = df_du:T()[1]:cross( df_dv:T()[1] )
-	local normalcode = symmath.export.C:toCode{
-		assignOnly = true,
-		output = {
-			{['normal.x'] = n[1]},
-			{['normal.y'] = n[2]},
-			{['normal.z'] = n[3]},
-		},
-		input = {
-			{['vtx.x'] = u},
-			{['vtx.y'] = v},
-		},
-	}
-print'normalcode'
-	print(normalcode)
+			local Rz = (vars.shellRot * v * symmath.Matrix(
+				{0, 0, 0},
+				{0, 0, -1},
+				{0, 1, 0}
+			))():exp()
+			print(Rz)
+
+			-- offset in y direction before applying v-based exp rescaling to make spiral shells
+			x[1][1] = x[1][1] + vars.pointAmpl
+
+			x = (symmath.exp(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v) * Rz * x)()
+
+
+			print(x)
+
+			-- offset back to center
+			x[2][1] = x[2][1] - 1
+
+			symmath.export.C.numberType = 'float'
+			local poscode = symmath.export.C:toCode{
+				assignOnly = true,
+				output = {
+					{['pos.x'] = x[1][1]},
+					{['pos.y'] = x[2][1]},
+					{['pos.z'] = x[3][1]},
+				},
+				input = {
+					{['vtx.x'] = u},
+					{['vtx.y'] = v},
+				},
+			}
+		print'poscode'
+			print(poscode)
+
+			local df_du = x:diff(u)()
+			local df_dv = x:diff(v)()
+			local n = df_du:T()[1]:cross( df_dv:T()[1] )
+			local normalcode = symmath.export.C:toCode{
+				assignOnly = true,
+				output = {
+					{['normal.x'] = n[1]},
+					{['normal.y'] = n[2]},
+					{['normal.z'] = n[3]},
+				},
+				input = {
+					{['vtx.x'] = u},
+					{['vtx.y'] = v},
+				},
+			}
+		print'normalcode'
+			print(normalcode)
+
+			assert(path(cachefile):write(tolua{
+				poscode=poscode,
+				normalcode=normalcode,
+			}))
+		end,
+	}}:run(cachefile)
+
+	local d = fromlua((assert(path(cachefile):read())))
+	local poscode = d.poscode
+	local normalcode = d.normalcode
 
 	gl.glEnable(gl.GL_NORMALIZE)
 	gl.glEnable(gl.GL_LIGHTING)
@@ -137,7 +161,7 @@ void main() {
 <?=normalcode?>
 	}
 	normalv = normalize((mvMat * vec4(normal, 0)).xyz);
-	
+
 	vec3 pos;
 	{
 <?=poscode?>
@@ -159,27 +183,40 @@ void main() {
 }
 ]],
 	}:useNone()
-	
-	local m = 200
-	local n = 200
+
+	self:rebuildObj()
+end
+
+function App:rebuildObj()
+	local m = self.guivars.gridWidth
+	local n = self.guivars.gridHeight
 
 	self.vtxVec = vector'vec2f_t'
-	self.vtxVec:reserve((m + 1) * (n + 1))
+	self.vtxVec:resize((m + 1) * (n + 1))
 	self.indexVec = vector'int'
-	self.indexVec:reserve(m * n * 3)
+	self.indexVec:resize(m * n * 6)
 
+	local vi = 0
+	local ei = 0
 	for j=0,n do
 		for i=0,m do
 			local u = i/m
 			local v = j/n
-			self.vtxVec:emplace_back()[0]:set(u, v)
+			self.vtxVec.v[vi]:set(u, v)
+			vi = vi + 1
 			if i < m and j < n then
-				self.indexVec:emplace_back()[0] = i + (m+1) * j
-				self.indexVec:emplace_back()[0] = (i+1) + (m+1) * j
-				self.indexVec:emplace_back()[0] = (i+1) + (m+1) * (j+1)
-				self.indexVec:emplace_back()[0] = (i+1) + (m+1) * (j+1)
-				self.indexVec:emplace_back()[0] = i + (m+1) * (j+1)
-				self.indexVec:emplace_back()[0] = i + (m+1) * j
+				self.indexVec.v[ei] = i + (m+1) * j
+				ei=ei+1
+				self.indexVec.v[ei] = (i+1) + (m+1) * j
+				ei=ei+1
+				self.indexVec.v[ei] = (i+1) + (m+1) * (j+1)
+				ei=ei+1
+				self.indexVec.v[ei] = (i+1) + (m+1) * (j+1)
+				ei=ei+1
+				self.indexVec.v[ei] = i + (m+1) * (j+1)
+				ei=ei+1
+				self.indexVec.v[ei] = i + (m+1) * j
+				ei=ei+1
 			end
 		end
 	end
@@ -213,7 +250,7 @@ function App:update()
 	gl.glClearColor(self.bgcolor:unpack())
 	gl.glClear(bit.bor(gl.GL_COLOR_BUFFER_BIT, gl.GL_DEPTH_BUFFER_BIT))
 
-	local shader = self.shader	
+	local shader = self.shader
 	shader:use()
 	gl.glUniformMatrix4fv(shader.uniforms.mvMat.loc, 1, gl.GL_FALSE, self.view.mvMat.ptr)
 	gl.glUniformMatrix4fv(shader.uniforms.projMat.loc, 1, gl.GL_FALSE, self.view.projMat.ptr)
@@ -230,7 +267,11 @@ function App:updateGUI()
 	if ig.igBeginMainMenuBar() then
 		if ig.igBeginMenu'Settings' then
 			for k,v in pairs(self.guivars) do
-				ig.luatableInputFloatAsText(k, self.guivars, k)
+				if ig.luatableInputFloatAsText(k, self.guivars, k) then
+					if k == 'gridWidth' or k == 'gridHeight' then
+						self:rebuildObj()
+					end
+				end
 			end
 			ig.igColorPicker3('background color', self.bgcolor.s, 0)
 			ig.igEndMenu()
