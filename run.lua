@@ -53,6 +53,7 @@ function App:initGL(...)
 			local u = symmath.var'u'
 			local v = symmath.var'v'
 
+-- give the parameters single-letter names for the html
 local i = 0
 for k,v in pairs(vars) do
 	v:nameForExporter('MathJax', string.char(('a'):byte() + i))
