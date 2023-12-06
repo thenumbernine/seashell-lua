@@ -30,7 +30,10 @@ function App:initGL(...)
 		shellRot = 7,
 		shellExpScaleMin = -3,
 		shellExpScaleMax = 3,
-		pointAmpl = 0,
+		
+		circleOfsX = 0,	-- set this to give it a point
+		circleOfsY = 1,	-- keep this 1 to offset the initial circle to have its edge at the origin
+		circleOfsZ = 0,	-- meh?
 	
 		gridWidth = 2000,
 		gridHeight = 2000,
@@ -50,6 +53,47 @@ function App:initGL(...)
 			local u = symmath.var'u'
 			local v = symmath.var'v'
 
+local i = 0
+for k,v in pairs(vars) do
+	v:nameForExporter('MathJax', string.char(('a'):byte() + i))
+	i = i + 1
+end
+
+			local exvar = symmath.var'e_x'
+			local eyvar = symmath.var'e_y'
+			local ezvar = symmath.var'e_z'
+			local Rxvar = symmath.var'R_x(2 \\pi u)'
+			local Rzvar = symmath.var('R_z('..vars.shellRot:nameForExporter'MathJax'..' \\cdot v)')
+			local ofsvar = symmath.var'\\vec{v}'
+			
+			-- start with our radius ...
+			local x = (
+				symmath.exp(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v)
+				* 
+				Rzvar
+				* 
+				(
+					-- get a unit circle around origin
+					Rxvar 
+					* (exvar * 
+						(1
+						-- give the circle profile some oscillations...
+						+ vars.shellSurfaceAmplitude 
+						* symmath.cos(2 * symmath.pi * vars.shellSurfacePeriod * u)
+					))
+				
+					+ ofsvar
+				)
+			)
+
+			local xorig = x
+			
+			print(x)
+			
+			local ex = symmath.Matrix{1, 0, 0}:T()
+			local ey = symmath.Matrix{0, 1, 0}:T()
+			local ez = symmath.Matrix{0, 0, 1}:T()
+			
 			local Rx = (2 * symmath.pi * u * symmath.Matrix(
 				{0, -1, 0},
 				{1, 0, 0},
@@ -57,37 +101,69 @@ function App:initGL(...)
 			))():exp()
 			print(Rx)
 
-			-- start with our radius ...
-			local x = symmath.Matrix{
-				1
-				-- give the circle profile some oscillations...
-				+ vars.shellSurfaceAmplitude  * symmath.cos(2 * symmath.pi * vars.shellSurfacePeriod * u),
-				0,
-				0
-			}:T()
-			-- get a unit circle around origin
-			local x = (Rx * x)()
-			-- offset it so the bottom is at origin
-			x[2][1] = x[2][1] + 1
-			print(x)
-
 			local Rz = (vars.shellRot * v * symmath.Matrix(
 				{0, 0, 0},
 				{0, 0, -1},
 				{0, 1, 0}
 			))():exp()
 			print(Rz)
+			local zexp = symmath.exp(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v)
 
-			-- offset in y direction before applying v-based exp rescaling to make spiral shells
-			x[1][1] = x[1][1] + vars.pointAmpl
+			local Rzexp = Rz * zexp
 
-			x = (symmath.exp(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v) * Rz * x)()
-
+-- TODO WHY ISNT THIS WORKING?!?!??!??!
+--[[			
+			x = x
+				:replace(exvar, ex)
+				:replace(eyvar, ey)
+				:replace(Rxvar, Rx)
+				:replace(Rzvar, Rz)
+				:replace(
+					ofsvar,
+					symmath.Matrix{
+						-- offset in y direction before applying v-based exp rescaling to make spiral shells
+						vars.circleOfsX,
+						-- offset it so the bottom is at origin
+						vars.circleOfsY,
+						-- meh
+						vars.circleOfsZ
+					}:T()
+				)
+			x = x()
+--]]
+-- [[ JUST WRITE IT WITHOUT REPLACE
+			local x = (
+				Rzexp
+				*
+				(
+					-- get a unit circle around origin
+					Rx
+					* (ex * 
+						(1
+						-- give the circle profile some oscillations...
+						+ vars.shellSurfaceAmplitude 
+						* symmath.cos(2 * symmath.pi * vars.shellSurfacePeriod * u)
+					))
+					
+					+ symmath.Matrix{
+						-- offset in y direction before applying v-based exp rescaling to make spiral shells
+						vars.circleOfsX,
+						-- offset it so the bottom is at origin
+						vars.circleOfsY,
+						-- meh
+						vars.circleOfsZ
+					}:T()
+				)
+			)()
+--]]
+			path'eqns.html':write(
+				symmath.export.MathJax.header
+				.. symmath.export.MathJax(xorig) .. '<br><br>\n'
+				.. symmath.export.MathJax(x) .. '<br><br>\n'
+				.. symmath.export.MathJax.footer
+			)
 
 			print(x)
-
-			-- offset back to center
-			x[2][1] = x[2][1] - 1
 
 			symmath.export.C.numberType = 'float'
 			local poscode = symmath.export.C:toCode{
