@@ -61,21 +61,24 @@ for k,v in pairs(vars) do
 end
 
 			local exvar = symmath.var'e_x'
-			local eyvar = symmath.var'e_y'
-			local ezvar = symmath.var'e_z'
-			local Rxvar = symmath.var'R_x(2 \\pi u)'
-			local Rzvar = symmath.var('R_z('..vars.shellRot:nameForExporter'MathJax'..' \\cdot v)')
 			local ofsvar = symmath.var'\\vec{v}'
 			
 			-- start with our radius ...
 			local x = (
-				symmath.exp(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v)
-				* 
-				Rzvar
+				-- these should technically combine ... 
+				-- https://www.wolframalpha.com/input?i=exp%28%5B%5By%2C0%2C0%5D%2C+%5B0%2Cy%2C-x%5D%2C%5B0%2Cx%2Cy%5D%5D%29
+				-- but I've broken it in my own matrix-exp, so ...
+				-- :replace() will no longer evaluate this correctly
+				symmath.exp(
+					(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v) * symmath.var'I'
+					+ symmath.var'\\star e_y' * vars.shellRot * v
+				)
 				* 
 				(
 					-- get a unit circle around origin
-					Rxvar 
+					symmath.exp(
+						symmath.var'\\star e_x' * 2 * symmath.pi * u
+					)
 					* (exvar * 
 						(1
 						-- give the circle profile some oscillations...
@@ -102,6 +105,7 @@ end
 			))():exp()
 			print(Rx)
 
+			-- [[
 			local Rz = (vars.shellRot * v * symmath.Matrix(
 				{0, 0, 0},
 				{0, 0, -1},
@@ -109,8 +113,19 @@ end
 			))():exp()
 			print(Rz)
 			local zexp = symmath.exp(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v)
-
 			local Rzexp = Rz * zexp
+			--]]
+			--[[ can I combine these into one?
+			-- ... ehhh not at the moment.  matrix-exp doesn't like it.
+			local Rzdiag = vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v
+			local Rzrot = vars.shellRot * v
+			local Rzexp = symmath.Matrix(
+				{Rzdiag , 0, 0},
+				{0, Rzdiag, -Rzrot},
+				{0, Rzrot, Rzdiag}
+			)():exp()
+			print(Rzexp)
+			--]]
 
 -- TODO WHY ISNT THIS WORKING?!?!??!??!
 --[[			
@@ -122,9 +137,9 @@ end
 				:replace(
 					ofsvar,
 					symmath.Matrix{
-						-- offset in y direction before applying v-based exp rescaling to make spiral shells
+						-- offset in x direction before applying v-based exp rescaling to make pointed spiral shells
 						vars.circleOfsX,
-						-- offset it so the bottom is at origin
+						-- offset in x by 1 to put the bottom at origin
 						vars.circleOfsY,
 						-- meh
 						vars.circleOfsZ

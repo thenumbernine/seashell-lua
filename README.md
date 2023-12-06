@@ -2,7 +2,7 @@ I made a parametric equation that describes a class of seashells.
 
 # Equation:
 
-${{\exp\left({{{{g}} {{\left({{1}{-{v}}}\right)}}} + {{{h}} {{v}}}}\right)}} {{{R_z(f \cdot v)}}} \cdot {{\left({{{{{R_x(2 \pi u)}}} \cdot {{{e_x}}} \cdot {{\left({{1} + {{{d}} {{\cos\left( {{{2}} {{π}} \cdot {{e}} {{u}}}\right)}}}}\right)}}} + {\vec{v}}}\right)}}$<br><br>
+${{\exp\left({{{{\left({{{{d}} {{\left({{1}{-{v}}}\right)}}} + {{{e}} {{v}}}}\right)}} {{I}}} + {{{{\star e_y}}} \cdot {{c}} {{v}}}}\right)}} {{\left({{{{\exp\left({{{{\star e_x}}} \cdot {{2}} {{π}} \cdot {{u}}}\right)}} {{{e_x}}} \cdot {{\left({{1} + {{{a}} {{\cos\left( {{{2}} {{π}} \cdot {{b}} {{u}}}\right)}}}}\right)}}} + {\vec{v}}}\right)}}$<br><br>
 
 # Pictures:
 
