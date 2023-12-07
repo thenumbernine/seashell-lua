@@ -25,11 +25,13 @@ function App:initGL(...)
 
 	-- uniforms
 	self.guivars = table{
-		shellSurfaceAmplitude = .01,
-		shellSurfacePeriod = 40,
-		shellRot = 7,
-		shellExpScaleMin = -3,
-		shellExpScaleMax = 3,
+		shellPerturbAmplU = .01,
+		shellPerturbPeriodU = 40,
+		shellPerturbAmplV = .01,
+		shellPerturbPeriodV = 40,
+		shellPeriodV = 7,	-- TODO for rotation, scale this by 2pi
+		shellExpScaleMinV = -3,
+		shellExpScaleMaxV = 3,
 		
 		circleOfsX = 0,	-- set this to give it a point
 		circleOfsY = 1,	-- keep this 1 to offset the initial circle to have its edge at the origin
@@ -70,8 +72,8 @@ end
 				-- but I've broken it in my own matrix-exp, so ...
 				-- :replace() will no longer evaluate this correctly
 				symmath.exp(
-					(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v) * symmath.var'I'
-					+ symmath.var'\\star e_y' * vars.shellRot * v
+					(vars.shellExpScaleMinV * (1 - v) + vars.shellExpScaleMaxV * v) * symmath.var'I'
+					+ symmath.var'\\star e_y' * vars.shellPeriodV * v
 				)
 				* 
 				(
@@ -82,8 +84,11 @@ end
 					* (exvar * 
 						(1
 						-- give the circle profile some oscillations...
-						+ vars.shellSurfaceAmplitude 
-						* symmath.cos(2 * symmath.pi * vars.shellSurfacePeriod * u)
+						+ vars.shellPerturbAmplU 
+						* symmath.cos(2 * symmath.pi * vars.shellPerturbPeriodU * u)
+						-- also oscillate along the spiral
+						+ vars.shellPerturbAmplV
+						* symmath.cos(2 * symmath.pi * vars.shellPerturbPeriodV * v)
 					))
 				
 					+ ofsvar
@@ -106,19 +111,19 @@ end
 			print(Rx)
 
 			-- [[
-			local Rz = (vars.shellRot * v * symmath.Matrix(
+			local Rz = (vars.shellPeriodV * v * symmath.Matrix(
 				{0, 0, 0},
 				{0, 0, -1},
 				{0, 1, 0}
 			))():exp()
 			print(Rz)
-			local zexp = symmath.exp(vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v)
+			local zexp = symmath.exp(vars.shellExpScaleMinV * (1 - v) + vars.shellExpScaleMaxV * v)
 			local Rzexp = Rz * zexp
 			--]]
 			--[[ can I combine these into one?
 			-- ... ehhh not at the moment.  matrix-exp doesn't like it.
-			local Rzdiag = vars.shellExpScaleMin * (1 - v) + vars.shellExpScaleMax * v
-			local Rzrot = vars.shellRot * v
+			local Rzdiag = vars.shellExpScaleMinV * (1 - v) + vars.shellExpScaleMaxV * v
+			local Rzrot = vars.shellPeriodV * v
 			local Rzexp = symmath.Matrix(
 				{Rzdiag , 0, 0},
 				{0, Rzdiag, -Rzrot},
@@ -157,8 +162,11 @@ end
 					* (ex * 
 						(1
 						-- give the circle profile some oscillations...
-						+ vars.shellSurfaceAmplitude 
-						* symmath.cos(2 * symmath.pi * vars.shellSurfacePeriod * u)
+						+ vars.shellPerturbAmplU
+						* symmath.cos(2 * symmath.pi * vars.shellPerturbPeriodU * u)
+						-- also oscillate along the spiral
+						+ vars.shellPerturbAmplV
+						* symmath.cos(2 * symmath.pi * vars.shellPerturbPeriodV * v)
 					))
 					
 					+ symmath.Matrix{
