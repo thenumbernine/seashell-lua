@@ -4,8 +4,11 @@ local tolua = require 'ext.tolua'
 local fromlua = require 'ext.fromlua'
 local path = require 'ext.path'
 local template = require 'template'
+local sdl = require 'ffi.req' 'sdl'
 local gl = require 'gl'
 local GLProgram = require 'gl.program'
+local GLFBO = require 'gl.fbo'
+local GLTex2D = require 'gl.tex2d'
 local ig = require 'imgui'
 require 'glapp.view'.useBuiltinMatrixMath = true -- do this before imguiapp.withorbit
 local App = require 'imguiapp.withorbit'()
@@ -25,11 +28,12 @@ function App:initGL(...)
 
 	-- uniforms
 	self.guivars = table{
+		-- hmm if I make these perturbations positive-only, I can add an exponent to them and control their sharpness...
 		shellPerturbAmplU = .01,
 		shellPerturbPeriodU = 40,
-		shellPerturbAmplV = .01,
-		shellPerturbPeriodV = 40,
-		shellPeriodV = 7,	-- TODO for rotation, scale this by 2pi
+		shellPerturbAmplV = .02,
+		shellPerturbPeriodV = 500,
+		shellPeriodV = 1.1,
 		shellExpScaleMinV = -3,
 		shellExpScaleMaxV = 3,
 		
@@ -39,6 +43,18 @@ function App:initGL(...)
 	
 		gridWidth = 2000,
 		gridHeight = 2000,
+
+		fboScaleX = 2,
+		fboScaleY = 2,
+	
+		useFBO = true,
+	}
+
+	self.guicallbacks = {
+		gridWidth = function() self:rebuildObj() end,
+		gridHeight = function() self:rebuildObj() end,
+		fboScaleX = function() self:rebuildFBO() end,
+		fboScaleY = function() self:rebuildFBO() end,
 	}
 
 	local cachefile = 'cached-eqns.lua'
@@ -73,7 +89,7 @@ end
 				-- :replace() will no longer evaluate this correctly
 				symmath.exp(
 					(vars.shellExpScaleMinV * (1 - v) + vars.shellExpScaleMaxV * v) * symmath.var'I'
-					+ symmath.var'\\star e_y' * vars.shellPeriodV * v
+					+ symmath.var'\\star e_y' * 2 * symmath.pi * vars.shellPeriodV * v
 				)
 				* 
 				(
@@ -111,7 +127,7 @@ end
 			print(Rx)
 
 			-- [[
-			local Rz = (vars.shellPeriodV * v * symmath.Matrix(
+			local Rz = (2 * symmath.pi * vars.shellPeriodV * v * symmath.Matrix(
 				{0, 0, 0},
 				{0, 0, -1},
 				{0, 1, 0}
@@ -123,7 +139,7 @@ end
 			--[[ can I combine these into one?
 			-- ... ehhh not at the moment.  matrix-exp doesn't like it.
 			local Rzdiag = vars.shellExpScaleMinV * (1 - v) + vars.shellExpScaleMaxV * v
-			local Rzrot = vars.shellPeriodV * v
+			local Rzrot = 2 * symmath.pi * vars.shellPeriodV * v
 			local Rzexp = symmath.Matrix(
 				{Rzdiag , 0, 0},
 				{0, Rzdiag, -Rzrot},
@@ -234,10 +250,6 @@ end
 	local poscode = d.poscode
 	local normalcode = d.normalcode
 
-	gl.glEnable(gl.GL_NORMALIZE)
-	gl.glEnable(gl.GL_LIGHTING)
-	gl.glEnable(gl.GL_LIGHT0)
-	gl.glLightfv(gl.GL_LIGHT0, gl.GL_POSITION, vec4f(0, 0, 0, 1).s)
 	gl.glEnable(gl.GL_DEPTH_TEST)
 	self.bgcolor = vec4f(.3,.3,.3,1)
 
@@ -278,13 +290,41 @@ void main() {
 in vec3 normalv;
 out vec4 fragColor;
 void main() {
+#if 0 // lum only
 	float l = abs(normalv.z);
 	fragColor = vec4(l, l, l, 1);
+#endif
+#if 1	//normal only
+	fragColor = vec4(normalv * .5 + .5, 1.);
+#endif
 }
 ]],
 	}:useNone()
 
+	self:rebuildFBO()
 	self:rebuildObj()
+end
+
+function App:rebuildFBO()
+	local fboWidth = self.width * self.guivars.fboScaleX
+	local fboHeight = self.height * self.guivars.fboScaleY
+	self.fboTex = GLTex2D{
+		width = fboWidth,
+		height = fboHeight,
+		internalFormat = gl.GL_RGBA,
+		format = gl.GL_RGBA,
+		type = gl.GL_UNSIGNED_BYTE,
+		data = ffi.new('uint8_t[?]', fboWidth * fboHeight * 4),
+		minFilter = gl.GL_LINEAR_MIPMAP_LINEAR,
+		magFilter = gl.GL_LINEAR,
+	}:unbind()
+
+	self.fbo = GLFBO{
+		width = fboWidth,
+		height = fboHeight,
+		useDepth = true,
+		dest = self.fboTex,
+	}:unbind()
 end
 
 function App:rebuildObj()
@@ -346,7 +386,8 @@ function App:rebuildObj()
 	}
 end
 
-function App:update()
+-- assumes the viewport and self.view is already set up
+function App:drawScene()
 	gl.glClearColor(self.bgcolor:unpack())
 	gl.glClear(bit.bor(gl.GL_COLOR_BUFFER_BIT, gl.GL_DEPTH_BUFFER_BIT))
 
@@ -359,6 +400,63 @@ function App:update()
 
 	self.obj:draw()
 
+end
+
+function App:update()
+	if not self.guivars.useFBO then
+		self:drawScene()
+	else
+		--[[
+		self.fbo:draw{
+			--viewport = {0, 0, self.fbo.width, self.fbo.height},	-- seems the fbo could figure this out itself ...
+			draw = function()
+				gl.glViewport(0, 0, self.fbo.width, self.fbo.height)
+				self.view:setup(self.fbo.width / self.fbo.height)
+				self:drawScene()
+			end,
+		}
+		--]]
+		-- [[
+		self.fbo:bind()
+		--self.fbo:setColorAttachmentTex2D(self.fboTex.id)
+		assert(self.fbo.check())
+gl.glDrawBuffer(gl.GL_COLOR_ATTACHMENT0)
+		gl.glViewport(0, 0, self.fbo.width, self.fbo.height)
+		--self.view:setup(self.fbo.width / self.fbo.height)
+		self:drawScene()
+gl.glDrawBuffer(gl.GL_BACK)
+		self.fbo:unbind()
+		--]]
+		gl.glViewport(0, 0, self.width, self.height)
+
+		-- generate mipmap
+		self.fboTex
+			:bind()
+			:generateMipmap()
+			:unbind()
+
+		-- draw supersample back to screen
+		
+		gl.glClear(bit.bor(gl.GL_COLOR_BUFFER_BIT, gl.GL_DEPTH_BUFFER_BIT))
+		
+		gl.glMatrixMode(gl.GL_PROJECTION)
+		gl.glLoadIdentity()
+		gl.glOrtho(0, 1, 0, 1, -1, 1)
+		gl.glMatrixMode(gl.GL_MODELVIEW)
+		gl.glLoadIdentity()
+		self.fboTex
+			:enable()
+			:bind()
+		gl.glBegin(gl.GL_TRIANGLE_STRIP)
+		gl.glTexCoord2f(0, 0)	gl.glVertex2f(0, 0)
+		gl.glTexCoord2f(1, 0)	gl.glVertex2f(1, 0)
+		gl.glTexCoord2f(0, 1)	gl.glVertex2f(0, 1)
+		gl.glTexCoord2f(1, 1)	gl.glVertex2f(1, 1)
+		gl.glEnd()
+		self.fboTex
+			:unbind()
+			:disable()
+	end
 	App.super.update(self)
 end
 
@@ -367,9 +465,19 @@ function App:updateGUI()
 	if ig.igBeginMainMenuBar() then
 		if ig.igBeginMenu'Settings' then
 			for k,v in pairs(self.guivars) do
-				if ig.luatableInputFloatAsText(k, self.guivars, k) then
-					if k == 'gridWidth' or k == 'gridHeight' then
-						self:rebuildObj()
+				local changed
+				local vt = type(v)
+				if vt == 'boolean' then
+					changed = ig.luatableCheckbox(k, self.guivars, k)
+				elseif vt == 'number' then
+					changed = ig.luatableInputFloatAsText(k, self.guivars, k)
+				else	
+					error("here with luatype "..vt)
+				end
+				if changed then
+					local callback = self.guicallbacks[k]
+					if callback then
+						callback()
 					end
 				end
 			end
@@ -377,6 +485,15 @@ function App:updateGUI()
 			ig.igEndMenu()
 		end
 		ig.igEndMainMenuBar()
+	end
+end
+
+function App:event(event, eventPtr)
+	App.super.event(self, event, eventPtr)
+	if eventPtr[0].type == sdl.SDL_WINDOWEVENT then
+		if eventPtr[0].window.event == sdl.SDL_WINDOWEVENT_SIZE_CHANGED then
+			self:rebuildFBO()
+		end
 	end
 end
 
