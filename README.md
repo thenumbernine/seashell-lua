@@ -6,6 +6,12 @@ ${{\exp\left({{{{\left({{{{f}} {{\left({{1}{-{v}}}\right)}}} + {{{g}} {{v}}}}\ri
 
 # Pictures:
 
+![](pics/pic10.png)
+
+![](pics/pic11.png)
+
+![](pics/pic12.png)
+
 ![](pics/pic1.png)
 
 ![](pics/pic2.png)
