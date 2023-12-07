@@ -406,28 +406,12 @@ function App:update()
 	if not self.guivars.useFBO then
 		self:drawScene()
 	else
-		--[[
 		self.fbo:draw{
-			--viewport = {0, 0, self.fbo.width, self.fbo.height},	-- seems the fbo could figure this out itself ...
-			draw = function()
-				gl.glViewport(0, 0, self.fbo.width, self.fbo.height)
-				self.view:setup(self.fbo.width / self.fbo.height)
+			viewport = {0, 0, self.fbo.width, self.fbo.height},	-- seems the fbo could figure this out itself ...
+			callback = function()
 				self:drawScene()
 			end,
 		}
-		--]]
-		-- [[
-		self.fbo:bind()
-		--self.fbo:setColorAttachmentTex2D(self.fboTex.id)
-		assert(self.fbo.check())
-gl.glDrawBuffer(gl.GL_COLOR_ATTACHMENT0)
-		gl.glViewport(0, 0, self.fbo.width, self.fbo.height)
-		--self.view:setup(self.fbo.width / self.fbo.height)
-		self:drawScene()
-gl.glDrawBuffer(gl.GL_BACK)
-		self.fbo:unbind()
-		--]]
-		gl.glViewport(0, 0, self.width, self.height)
 
 		-- generate mipmap
 		self.fboTex
