@@ -105,7 +105,8 @@ void main() {
 	vec3 normalv = normalize((mvMat * vec4(normal, 0)).xyz);
 	gl_Position = projMat * (mvMat * vec4(pos, 1.));
 
-	vec3 incident = -mvMat[0].xyz;
+	vec3 view = -mvMat[0].xyz;
+	vec3 incident = reflect(view, normalv);
 	redv = refract(incident, normalv, ratioR);
 	greenv = refract(incident, normalv, ratioG);
 	bluev = refract(incident, normalv, ratioB);
