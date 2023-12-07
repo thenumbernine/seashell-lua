@@ -9,6 +9,7 @@ local gl = require 'gl'
 local GLProgram = require 'gl.program'
 local GLFBO = require 'gl.fbo'
 local GLTex2D = require 'gl.tex2d'
+local GLTexCube = require 'gl.texcube'
 local ig = require 'imgui'
 require 'glapp.view'.useBuiltinMatrixMath = true -- do this before imguiapp.withorbit
 local App = require 'imguiapp.withorbit'()
@@ -32,7 +33,7 @@ function App:initGL(...)
 		shellPerturbAmplU = .01,
 		shellPerturbPeriodU = 40,
 		shellPerturbAmplV = .02,
-		shellPerturbPeriodV = 500,
+		shellPerturbPeriodV = 50,
 		shellPeriodV = 1.1,
 		shellExpScaleMinV = -3,
 		shellExpScaleMaxV = 3,
@@ -48,7 +49,13 @@ function App:initGL(...)
 		fboScaleY = 2,
 	
 		useFBO = true,
+
+		-- chromatic aberration ratios
+		ratioR = .3,
+		ratioG = .2,
+		ratioB = .1,
 	}
+	self.guivarnames = self.guivars:map(function(v,k,t) return k, #t+1 end):sort()
 
 	self.guicallbacks = {
 		gridWidth = function() self:rebuildObj() end,
@@ -258,11 +265,11 @@ end
 #version 460
 #define M_PI <?=('%.50f'):format(math.pi)?>
 in vec2 vtx;
-out vec3 normalv;
-
+out vec3 redv, greenv, bluev;
 uniform mat4 mvMat, projMat;
 
-<? for k,v in pairs(self.guivars) do
+<? for _,k in ipairs(self.guivarnames) do
+	local v = self.guivars[k]
 ?>uniform float <?=k?>;
 <? end
 ?>
@@ -272,13 +279,18 @@ void main() {
 	{
 <?=normalcode?>
 	}
-	normalv = normalize((mvMat * vec4(normal, 0)).xyz);
+	vec3 normalv = normalize((mvMat * vec4(normal, 0)).xyz);
 
 	vec3 pos;
 	{
 <?=poscode?>
 	}
 	gl_Position = projMat * (mvMat * vec4(pos, 1.));
+
+	vec3 incident = -mvMat[0].xyz;
+	redv = refract(incident, normalv, ratioR);
+	greenv = refract(incident, normalv, ratioG);
+	bluev = refract(incident, normalv, ratioB);
 }
 ]], {
 	self = self,
@@ -287,19 +299,54 @@ void main() {
 }),
 		fragmentCode = [[
 #version 460
-in vec3 normalv;
+in vec3 redv, greenv, bluev;
 out vec4 fragColor;
+uniform samplerCube skyTex;
 void main() {
-#if 0 // lum only
-	float l = abs(normalv.z);
-	fragColor = vec4(l, l, l, 1);
-#endif
-#if 1	//normal only
-	fragColor = vec4(normalv * .5 + .5, 1.);
-#endif
+
+	fragColor = vec4(
+		texture(skyTex, redv).r,
+		texture(skyTex, greenv).g,
+		texture(skyTex, bluev).b,
+		1.);
 }
 ]],
+		uniforms = {
+			skyTex = 0,
+		},
 	}:useNone()
+
+	local skytexbase = 'cloudy/bluecloud_'
+	self.skyTex = GLTexCube{
+		--[[
+		filenames = {
+			skytexbase..'posx.jpg',
+			skytexbase..'negx.jpg',
+			skytexbase..'posy.jpg',
+			skytexbase..'negy.jpg',
+			skytexbase..'posz.jpg',
+			skytexbase..'negz.jpg',
+		},
+		--]]
+		-- [[
+		filenames = {
+			skytexbase..'ft.jpg',
+			skytexbase..'bk.jpg',
+			skytexbase..'up.jpg',
+			skytexbase..'dn.jpg',
+			skytexbase..'rt.jpg',
+			skytexbase..'lf.jpg',
+		},	
+		--]]
+		wrap={
+			s=gl.GL_CLAMP_TO_EDGE,
+			t=gl.GL_CLAMP_TO_EDGE,
+			r=gl.GL_CLAMP_TO_EDGE,
+		},
+		magFilter = gl.GL_LINEAR,
+		minFilter = gl.GL_LINEAR,	-- GL_LINEAR_MIPMAP_LINEAR,
+		--generateMipmap = true,
+	}:unbind()
 
 	self:rebuildFBO()
 	self:rebuildObj()
@@ -391,6 +438,47 @@ function App:drawScene()
 	gl.glClearColor(self.bgcolor:unpack())
 	gl.glClear(bit.bor(gl.GL_COLOR_BUFFER_BIT, gl.GL_DEPTH_BUFFER_BIT))
 
+	-- draw sky cube with no depth
+	-- TODO make it rotate with the orbit angle
+
+	gl.glDisable(gl.GL_DEPTH_TEST)
+	self.skyTex
+		:enable()
+		:bind()
+	--gl.glEnable(gl.GL_CULL_FACE)
+	gl.glBegin(gl.GL_QUADS)
+	local s = 1
+	for dim=0,2 do
+		for bit2 = 0,1 do	-- plus/minus side
+			for bit1 = 0,1 do	-- v texcoord
+				for bit0 = 0,1 do	-- u texcoord
+					local i2 = bit.bor(
+						bit.bxor(bit0, bit1, bit2),
+						bit.lshift(bit1, 1),
+						bit.lshift(bit2, 2)
+					)
+					-- now rotate i2 by dim
+					local i = bit.band(7, bit.bor(
+						bit.lshift(i2, dim),
+						bit.rshift(i2, 3 - dim)
+					))
+					local x = bit.band(1, i)
+					local y = bit.band(1, bit.rshift(i, 1))
+					local z = bit.band(1, bit.rshift(i, 2))
+					gl.glTexCoord3d(s*(x*2-1),s*(y*2-1),s*(z*2-1))
+					gl.glVertex3d(s*(x*2-1),s*(y*2-1),s*(z*2-1))
+				end
+			end
+		end
+	end
+	gl.glEnd()
+	self.skyTex
+		:unbind()
+		:disable()
+	gl.glEnable(gl.GL_DEPTH_TEST)
+
+	-- draw scene
+
 	local shader = self.shader
 	shader:use()
 	gl.glUniformMatrix4fv(shader.uniforms.mvMat.loc, 1, gl.GL_FALSE, self.view.mvMat.ptr)
@@ -398,7 +486,9 @@ function App:drawScene()
 	shader:setUniforms(self.guivars)
 	shader:useNone()
 
+	self.skyTex:bind()
 	self.obj:draw()
+	self.skyTex:unbind()
 
 end
 
@@ -448,7 +538,8 @@ function App:updateGUI()
 	local mesh = self.mesh
 	if ig.igBeginMainMenuBar() then
 		if ig.igBeginMenu'Settings' then
-			for k,v in pairs(self.guivars) do
+			for _,k in ipairs(self.guivarnames) do
+				local v = self.guivars[k]
 				local changed
 				local vt = type(v)
 				if vt == 'boolean' then
