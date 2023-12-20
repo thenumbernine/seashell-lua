@@ -1,0 +1,55 @@
+name = 'seashell'
+luaDistVer = 'luajit'	-- luajit-openresty-2.1.0
+luaArgs = {'run.lua'}
+
+files = {
+	-- cwd files/dirs go here
+	['.'] = {
+		'cached-eqns.glsl',
+		'cloudy',
+		'eqn.lua',
+		'eqns.html',
+		'README.md',
+		'run.lua',
+	},
+	-- other paths go here
+	['..'] = table{
+		'template',
+		'lfs_ffi',
+		'ffi',
+		'ext',
+		'struct',
+		'vec-ffi',
+		'matrix',
+		'image',
+		'gl',
+		'glapp',
+		'imgui',
+		'imguiapp',
+		'make',
+		'complex',
+		'bignumber',
+		'symmath',
+	},
+}
+
+-- binary libs needed for luajit
+luajitLibs = {
+	win = {
+		'png',	-- TODO which dir is it pulling png from? do i need z or zlib? doen't matter, no pngs in this so far
+		'SDL2',
+		--'GLESv2' ?
+		'cimgui_sdl',
+	},
+	linux = {
+		'png',			-- /usr/lib/x86_64-linux-gnu/libpng16.so.16.39.0
+		'SDL2',			-- /usr/lib/x86_64-linux-gnu/libSDL2-2.0.so.0.2600.3
+		'GLESv2',		-- /usr/lib/x86_64-linux-gnu/libGLESv2.so.2.1.0
+		'cimgui_sdl',	-- /usr/local/lib/libcimgui_sdl-1.87dock.so
+	},
+	osx = {
+		'sdl',
+		'libpng',
+		'libimgui',
+	},
+}
