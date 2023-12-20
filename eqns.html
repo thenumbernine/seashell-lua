@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset='utf-8'>
+		<title>Symbolic Lua Output</title>
+		<script type='text/javascript' src='./tryToFindMathJax.js'></script>
+	
+		<style>
+:root {
+	--font-color: #000000;
+	--bg-color: rgb(243,243,243);
+}
+[data-theme="dark"] {
+	--font-color: #ffffff;
+	--bg-color: #000000;
+}
+
+body {
+	overflow : scroll;
+	background : var(--bg-color);
+	color : var(--font-color);
+}
+
+/* desktop chrome inputs have white background black font.  mobile chrome inputs have clear background black font. */
+input {
+	background : var(--bg-color);
+	color : var(--font-color);
+}
+		</style>
+		<script type='text/javascript'>
+//https://stackoverflow.com/questions/56300132/how-to-override-css-prefers-color-scheme-setting
+window.addEventListener('load', () => {
+	let darkMode = false;
+	if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+		darkMode = true;
+	}
+	if (darkMode) {
+		document.documentElement.setAttribute('data-theme', 'dark');
+	} else {
+		document.documentElement.removeAttribute('data-theme', 'dark');
+	}
+});
+		</script>
+
+
+	</head>
+	<body>
+${{\exp\left({{{{\left({{{{f}} {{\left({{1}{-{v}}}\right)}}} + {{{g}} {{v}}}}\right)}} {{I}}} + {{{{\star e_y}}} \cdot {{2}} {{π}} \cdot {{e}} {{v}}}}\right)}} {{\left({{{{\exp\left({{{{\star e_x}}} \cdot {{2}} {{π}} \cdot {{u}}}\right)}} {{{e_x}}} \cdot {{\left({{1} + {{{a}} {{\cos\left( {{{2}} {{π}} \cdot {{b}} {{u}}}\right)}}} + {{{c}} {{\cos\left( {{{2}} {{π}} \cdot {{d}} {{v}}}\right)}}}}\right)}}} + {\vec{v}}}\right)}}$<br><br>
+$\left[\begin{array}{c} {{\exp\left({{f} + {{{g}} {{v}}}{-{{{f}} {{v}}}}}\right)}} {{\left({{h} + {\cos\left( {{{2}} {{u}} {{π}}}\right)} + {{{a}} {{\cos\left( {{{2}} {{u}} {{π}}}\right)}} {{\cos\left( {{{2}} {{b}} {{u}} {{π}}}\right)}}} + {{{c}} {{\cos\left( {{{2}} {{u}} {{π}}}\right)}} {{\cos\left( {{{2}} {{d}} {{v}} {{π}}}\right)}}}}\right)}}\\ {{\exp\left({{f} + {{{g}} {{v}}}{-{{{f}} {{v}}}}}\right)}} {{\left({{{{i}} {{\cos\left( {{{2}} {{e}} {{v}} {{π}}}\right)}}}{-{{{j}} {{\sin\left( {{{2}} {{e}} {{v}} {{π}}}\right)}}}} + {{{\cos\left( {{{2}} {{e}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}}} + {{{a}} {{\cos\left( {{{2}} {{e}} {{v}} {{π}}}\right)}} {{\cos\left( {{{2}} {{b}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}}} + {{{c}} {{\cos\left( {{{2}} {{e}} {{v}} {{π}}}\right)}} {{\cos\left( {{{2}} {{d}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}}}}\right)}}\\ {{\exp\left({{f} + {{{g}} {{v}}}{-{{{f}} {{v}}}}}\right)}} {{\left({{{{i}} {{\sin\left( {{{2}} {{e}} {{v}} {{π}}}\right)}}} + {{{j}} {{\cos\left( {{{2}} {{e}} {{v}} {{π}}}\right)}}} + {{{\sin\left( {{{2}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{e}} {{v}} {{π}}}\right)}}} + {{{a}} {{\cos\left( {{{2}} {{b}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{e}} {{v}} {{π}}}\right)}}} + {{{c}} {{\cos\left( {{{2}} {{d}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{e}} {{v}} {{π}}}\right)}}}}\right)}}\end{array}\right]$<br><br>
+	</body>
+</html>
