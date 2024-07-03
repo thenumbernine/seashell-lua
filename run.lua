@@ -15,7 +15,7 @@ local ffi = require 'ffi'
 local vec2f = require 'vec-ffi.vec2f'
 local vec3f = require 'vec-ffi.vec3f'
 local vec4f = require 'vec-ffi.vec4f'
-local vector = require 'ffi.cpp.vector'
+local vector = require 'ffi.cpp.vector-lua'
 local Targets = require 'make.targets'
 
 local App = require 'imguiapp.withorbit'()
