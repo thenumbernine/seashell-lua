@@ -2,6 +2,7 @@
 local table = require 'ext.table'
 local fromlua = require 'ext.fromlua'
 local path = require 'ext.path'
+local assertindex = require 'ext.assert'.index
 local template = require 'template'
 local sdl = require 'ffi.req' 'sdl'
 local gl = require 'gl'
@@ -40,17 +41,17 @@ function App:initGL(...)
 		shellPeriodV = 1.1,
 		shellExpScaleMinV = -3,
 		shellExpScaleMaxV = 3,
-		
+
 		circleOfsX = 0,	-- set this to give it a point
 		circleOfsY = 1,	-- keep this 1 to offset the initial circle to have its edge at the origin
 		circleOfsZ = 0,	-- meh?
-	
+
 		gridWidth = 2000,
 		gridHeight = 2000,
 
 		fboScaleX = 2,
 		fboScaleY = 2,
-	
+
 		useFBO = true,
 
 		-- chromatic aberration ratios
@@ -70,19 +71,18 @@ function App:initGL(...)
 	Targets{verbose=true, {
 		dsts = {self.cachefile},
 		srcs = {'eqn.lua'},		-- cache as long as this file hasn't changed
-		rule = function()
-			require 'eqn'(self)
-		end,
+		rule = function() require 'eqn'(self) end,
 	}}:run(self.cachefile)
 
 	local glslcode = assert(path(self.cachefile):read())
 
 	gl.glEnable(gl.GL_DEPTH_TEST)
-	self.bgcolor = vec4f(.3,.3,.3,1)
+	self.bgcolor = vec4f(.3, .3, .3, 1)
 
 	self.shader = GLProgram{
-		vertexCode = template([[
-#version 460
+		vertexCode = template(
+GLProgram.getVersionPragma()..'\n'
+..[[
 #define M_PI <?=('%.50f'):format(math.pi)?>
 in vec2 vtx;
 out vec3 redv, greenv, bluev;
@@ -97,11 +97,11 @@ uniform mat4 mvMat, projMat;
 void main() {
 	vec3 normal;
 	vec3 pos;
-	
+
 	{
 <?=glslcode?>
 	}
-	
+
 	vec3 normalv = normalize((mvMat * vec4(normal, 0)).xyz);
 	gl_Position = projMat * (mvMat * vec4(pos, 1.));
 
@@ -115,8 +115,9 @@ void main() {
 	self = self,
 	glslcode = glslcode,
 }),
-		fragmentCode = [[
-#version 460
+		fragmentCode =
+GLProgram.getVersionPragma()..'\n'
+..[[
 in vec3 redv, greenv, bluev;
 out vec4 fragColor;
 uniform samplerCube skyTex;
@@ -154,7 +155,7 @@ void main() {
 			skytexbase..'dn.jpg',
 			skytexbase..'rt.jpg',
 			skytexbase..'lf.jpg',
-		},	
+		},
 		--]]
 		wrap={
 			s=gl.GL_CLAMP_TO_EDGE,
@@ -316,9 +317,7 @@ function App:update()
 	else
 		self.fbo:draw{
 			viewport = {0, 0, self.fbo.width, self.fbo.height},	-- seems the fbo could figure this out itself ...
-			callback = function()
-				self:drawScene()
-			end,
+			callback = function() self:drawScene() end,
 		}
 
 		-- generate mipmap
@@ -328,9 +327,9 @@ function App:update()
 			:unbind()
 
 		-- draw supersample back to screen
-		
+
 		gl.glClear(bit.bor(gl.GL_COLOR_BUFFER_BIT, gl.GL_DEPTH_BUFFER_BIT))
-		
+
 		gl.glMatrixMode(gl.GL_PROJECTION)
 		gl.glLoadIdentity()
 		gl.glOrtho(0, 1, 0, 1, -1, 1)
@@ -352,22 +351,17 @@ function App:update()
 	App.super.update(self)
 end
 
+local typeHandlers = {
+	boolean = function(self, k) ig.luatableCheckbox(k, self.guivars, k) end,
+	number = function(self, k) ig.luatableInputFloatAsText(k, self.guivars, k) end,
+}
+
 function App:updateGUI()
 	local mesh = self.mesh
 	if ig.igBeginMainMenuBar() then
 		if ig.igBeginMenu'Settings' then
 			for _,k in ipairs(self.guivarnames) do
-				local v = self.guivars[k]
-				local changed
-				local vt = type(v)
-				if vt == 'boolean' then
-					changed = ig.luatableCheckbox(k, self.guivars, k)
-				elseif vt == 'number' then
-					changed = ig.luatableInputFloatAsText(k, self.guivars, k)
-				else	
-					error("here with luatype "..vt)
-				end
-				if changed then
+				if assertindex(typeHandlers, type(self.guivars[k]))(self, k) then
 					local callback = self.guicallbacks[k]
 					if callback then
 						callback()
