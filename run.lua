@@ -12,16 +12,14 @@ local GLFBO = require 'gl.fbo'
 local GLTex2D = require 'gl.tex2d'
 local GLTexCube = require 'gl.texcube'
 local ig = require 'imgui'
-require 'glapp.view'.useBuiltinMatrixMath = true -- do this before imguiapp.withorbit
 local vec2f = require 'vec-ffi.vec2f'
 local vec3f = require 'vec-ffi.vec3f'
 local vec4f = require 'vec-ffi.vec4f'
 local vector = require 'ffi.cpp.vector-lua'
-local Targets = require 'make.targets'
 
 local App = require 'imguiapp.withorbit'()
-
 App.title = 'seashell'
+App.viewUseBuiltinMatrixMath = true
 
 -- used here and eqn.lua for where to read/write the eqn cache
 App.cachefile = 'cached-eqns.glsl'
@@ -68,13 +66,19 @@ function App:initGL(...)
 		fboScaleY = function() self:rebuildFBO() end,
 	}
 
-	Targets{verbose=true, {
-		dsts = {self.cachefile},
-		srcs = {'eqn.lua'},		-- cache as long as this file hasn't changed
-		rule = function() require 'eqn'(self) end,
-	}}:run(self.cachefile)
-
-	local glslcode = assert(path(self.cachefile):read())
+	local docache = not js
+	local glslcode
+	if docache then
+		local Targets = require 'make.targets'
+		Targets{verbose=true, {
+			dsts = {self.cachefile},
+			srcs = {'eqn.lua'},		-- cache as long as this file hasn't changed
+			rule = function() require 'eqn'(self) end,
+		}}:run(self.cachefile)
+		glslcode = assert(path(self.cachefile):read())
+	else
+		glslcode = require 'eqn'(self, true)
+	end
 
 	gl.glEnable(gl.GL_DEPTH_TEST)
 	self.bgcolor = vec4f(.3, .3, .3, 1)

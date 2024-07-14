@@ -3,7 +3,7 @@ local tolua = require 'ext.tolua'
 local path = require 'ext.path'
 -- put all the eqn-specific stuff in here
 -- so that I can cache the generated equation code and use this file's timestamp for its regeneration
-return function(self)
+return function(self, dontCache)
 	local vars = self.guivars:map(function(v,k)
 		return symmath.var(k), k
 	end)
@@ -169,5 +169,9 @@ return function(self)
 		},
 	}
 
-	assert(path(self.cachefile):write(code))
+	if dontCache then
+		return code
+	else
+		assert(path(self.cachefile):write(code))
+	end
 end
