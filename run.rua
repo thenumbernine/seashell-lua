@@ -6,17 +6,17 @@ local GLProgram = require 'gl.program'
 local GLFBO = require 'gl.fbo'
 local GLTex2D = require 'gl.tex2d'
 local GLTexCube = require 'gl.texcube'
+local GLSceneObject = require 'gl.sceneobject'
+local glreport = require 'gl.report'
 local ig = require 'imgui'
-require 'glapp.view'.useBuiltinMatrixMath = true -- do this before imguiapp.withorbit
 local vec2f = require 'vec-ffi.vec2f'
 local vec3f = require 'vec-ffi.vec3f'
 local vec4f = require 'vec-ffi.vec4f'
 local vector = require 'ffi.cpp.vector-lua'
-local Targets = require 'make.targets'
 
 local App = require 'imguiapp.withorbit'()
-
 App.title = 'seashell'
+App.viewUseBuiltinMatrixMath = true
 
 -- used here and eqn.lua for where to read/write the eqn cache
 App.cachefile = 'cached-eqns.glsl'
@@ -63,21 +63,27 @@ App.initGL = [:, ...] do
 		fboScaleY = [] self:rebuildFBO(),
 	}
 
-	Targets{verbose=true, {
-		dsts = {self.cachefile},
-		srcs = {'eqn.lua'},		-- cache as long as this file hasn't changed
-		rule = [] require 'eqn'(self),
-	}}:run(self.cachefile)
-
-	local glslcode = assert(path(self.cachefile):read())
+	local docache = true
+	local glslcode
+	if docache then
+		local Targets = require 'make.targets'
+		Targets{verbose=true, {
+			dsts = {self.cachefile},
+			srcs = {'eqn.lua'},		-- cache as long as this file hasn't changed
+			rule = [] require 'eqn'(self),
+		}}:run(self.cachefile)
+		glslcode = assert(path(self.cachefile):read())
+	else
+		glslcode = require 'eqn'(self, true)
+	end
 
 	gl.glEnable(gl.GL_DEPTH_TEST)
 	self.bgcolor = vec4f(.3, .3, .3, 1)
 
 	self.shader = GLProgram{
-		vertexCode = template(
-GLProgram.getVersionPragma()..'\n'
-..[[
+		version = 'latest',
+		header = 'precision highp float;',
+		vertexCode = template([[
 #define M_PI <?=('%.50f'):format(math.pi)?>
 in vec2 vtx;
 out vec3 redv, greenv, bluev;
@@ -110,9 +116,7 @@ void main() {
 	self = self,
 	glslcode = glslcode,
 }),
-		fragmentCode =
-GLProgram.getVersionPragma()..'\n'
-..[[
+		fragmentCode = [[
 in vec3 redv, greenv, bluev;
 out vec4 fragColor;
 uniform samplerCube skyTex;
@@ -161,6 +165,114 @@ void main() {
 		minFilter = gl.GL_LINEAR,	-- GL_LINEAR_MIPMAP_LINEAR,
 		--generateMipmap = true,
 	}:unbind()
+
+	self.skyboxShader = GLProgram{
+		version = 'latest',
+		header = 'precision highp float;',
+		vertexCode = [[
+in vec3 vtx;
+out vec3 tcv;
+uniform mat4 projMat;
+void main() {
+	vec4 worldpos = vec4(vtx, 1.);
+	tcv = worldpos.xyz;
+	gl_Position = projMat * worldpos;
+}
+]],
+		fragmentCode = [[
+in vec3 tcv;
+out vec4 fragColor;
+uniform samplerCube skyTex;
+void main() {
+	fragColor = texture(skyTex, tcv);
+}
+]],
+		uniforms = {
+			skyTex = 0,
+		},
+	}:useNone()
+
+	local skyboxVertexes = table()
+	local s = 1
+	for dim=0,2 do
+		for bit2 = 0,1 do	-- plus/minus side
+			local quadVtxs = table()
+			for bit1 = 0,1 do	-- v texcoord
+				for bit0 = 0,1 do	-- u texcoord
+					local i2 = (bit0 ~ bit1 ~ bit2) | (bit1 << 1) | (bit2 << 2)
+					-- now rotate i2 by dim
+					local i = 7 & ((i2 << dim) | (i2 >> (3 - dim)))
+					local x = 1 & i
+					local y = 1 & (i >> 1)
+					local z = 1 & (i >> 2)
+					quadVtxs:insert{s*(x*2-1),s*(y*2-1),s*(z*2-1)}
+				end
+			end
+			for _,i in ipairs{1, 2, 4, 3, 4, 2} do
+				skyboxVertexes:append(quadVtxs[i])
+			end
+		end
+	end
+
+	self.skyboxObj = GLSceneObject{
+		program = self.skyboxShader,
+		geometry = {
+			mode = gl.GL_TRIANGLES,
+			count = 36
+		},
+		texs = {self.skyTex},
+		attrs = {
+			vtx = {
+				buffer = {
+					data = skyboxVertexes,
+				},
+			},
+		},
+	}
+
+	self.fboProjMat = matrix_ffi({4,4}, 'float'):zeros():setOrtho(0, 1, 0, 1, -1, 1)
+	self.updateFBOSceneObj = GLSceneObject{
+		program = {
+			version = 'latest',
+			header = 'precision highp float;',
+			vertexCode = [[
+in vec2 vtx;
+out vec2 tcv;
+uniform mat4 projMat;
+void main() {
+	tcv = vtx;
+	gl_Position = projMat * vec4(vtx, 0., 1.);
+}
+]],
+			fragmentCode = [[
+in vec2 tcv;
+out vec4 fragColor;
+uniform sampler2D fboTex;
+void main() {
+	fragColor = texture(fboTex, tcv);
+}
+]],
+			uniforms = {
+				fboTex = 0,
+			},
+		},
+		geometry = {
+			mode = gl.GL_TRIANGLE_STRIP,
+			count = 4,
+		},
+		attrs = {
+			vtx = {
+				buffer = {
+					data = {
+						0, 0,
+						1, 0,
+						0, 1,
+						1, 1,
+					},
+				},
+			},
+		},
+	}
 
 	self:rebuildFBO()
 	self:rebuildObj()
@@ -227,19 +339,17 @@ App.rebuildObj = [:] do
 		size = ffi.sizeof(self.vtxVec.type) * self.vtxVec.size,
 	}:unbind()
 
-	self.geometry = require 'gl.geometry'{
-		mode = gl.GL_TRIANGLES,
-		vertexes = self.vtxBuf,
-		indexes = require 'gl.elementarraybuffer'{
-			data = self.indexVec.v,
-			size = ffi.sizeof(self.indexVec.type) * self.indexVec.size,
-			type = gl.GL_UNSIGNED_INT,
-		}:unbind(),
-		count = self.indexVec.size,
-	}
-
-	self.obj = require 'gl.sceneobject'{
-		geometry = self.geometry,
+	self.obj = GLSceneObject{
+		geometry = {
+			mode = gl.GL_TRIANGLES,
+			vertexes = self.vtxBuf,
+			indexes = require 'gl.elementarraybuffer'{
+				data = self.indexVec.v,
+				size = ffi.sizeof(self.indexVec.type) * self.indexVec.size,
+				type = gl.GL_UNSIGNED_INT,
+			}:unbind(),
+			count = self.indexVec.size,
+		},
 		program = self.shader,
 		attrs = {
 			vtx = self.vtxBuf,
@@ -256,32 +366,9 @@ App.drawScene = [:] do
 	-- TODO make it rotate with the orbit angle
 
 	gl.glDisable(gl.GL_DEPTH_TEST)
-	self.skyTex
-		:enable()
-		:bind()
 	--gl.glEnable(gl.GL_CULL_FACE)
-	gl.glBegin(gl.GL_QUADS)
-	local s = 1
-	for dim=0,2 do
-		for bit2 = 0,1 do	-- plus/minus side
-			for bit1 = 0,1 do	-- v texcoord
-				for bit0 = 0,1 do	-- u texcoord
-					local i2 = (bit0 ~ bit1 ~ bit2) | (bit1 << 1) | (bit2 << 2)
-					-- now rotate i2 by dim
-					local i = 7 & ((i2 << dim) | (i2 >> (3 - dim)))
-					local x = 1 & i
-					local y = 1 & (i >> 1)
-					local z = 1 & (i >> 2)
-					gl.glTexCoord3d(s*(x*2-1),s*(y*2-1),s*(z*2-1))
-					gl.glVertex3d(s*(x*2-1),s*(y*2-1),s*(z*2-1))
-				end
-			end
-		end
-	end
-	gl.glEnd()
-	self.skyTex
-		:unbind()
-		:disable()
+	self.skyboxObj.uniforms.projMat = self.view.projMat.ptr
+	self.skyboxObj:draw()
 	gl.glEnable(gl.GL_DEPTH_TEST)
 
 	-- draw scene
@@ -296,7 +383,6 @@ App.drawScene = [:] do
 	self.skyTex:bind()
 	self.obj:draw()
 	self.skyTex:unbind()
-
 end
 
 App.update = [:] do
@@ -318,25 +404,12 @@ App.update = [:] do
 
 		gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
-		gl.glMatrixMode(gl.GL_PROJECTION)
-		gl.glLoadIdentity()
-		gl.glOrtho(0, 1, 0, 1, -1, 1)
-		gl.glMatrixMode(gl.GL_MODELVIEW)
-		gl.glLoadIdentity()
-		self.fboTex
-			:enable()
-			:bind()
-		gl.glBegin(gl.GL_TRIANGLE_STRIP)
-		gl.glTexCoord2f(0, 0)	gl.glVertex2f(0, 0)
-		gl.glTexCoord2f(1, 0)	gl.glVertex2f(1, 0)
-		gl.glTexCoord2f(0, 1)	gl.glVertex2f(0, 1)
-		gl.glTexCoord2f(1, 1)	gl.glVertex2f(1, 1)
-		gl.glEnd()
-		self.fboTex
-			:unbind()
-			:disable()
+		self.updateFBOSceneObj.uniforms.projMat = self.fboProjMat.ptr
+		self.updateFBOSceneObj.texs[1]  = self.fboTex
+		self.updateFBOSceneObj:draw()
 	end
 	App.super.update(self)
+glreport'here'
 end
 
 local typeHandlers = {
