@@ -22,9 +22,8 @@ local vector = require 'ffi.cpp.vector-lua'
 
 local cmdline = require 'ext.cmdline'.validate{
 	help = require 'ext.cmdline'.showHelpAndQuit,
-	force = {
-		desc = "Force rebuilding the equations, instead of using a cached copy.",
-	},
+	force = {desc="Force rebuilding the equations, instead of using a cached copy."},
+	usecache = {desc="Force using the cached copy regardless of timestamp."},
 }(...)
 
 local App = require 'imguiapp.withorbit'()
@@ -76,9 +75,12 @@ function App:initGL(...)
 		fboScaleY = function() self:rebuildFBO() end,
 	}
 
-	local docache = not cmdline.force
 	local glslcode
-	if docache then
+	if cmdline.force then
+		glslcode = require 'eqn'(self, true)
+	elseif cmdline.usecache then
+		glslcode = assert(path(self.cachefile):read())
+	else
 		local Targets = require 'make.targets'
 		Targets{verbose=true, {
 			dsts = {self.cachefile},
@@ -86,8 +88,6 @@ function App:initGL(...)
 			rule = function() require 'eqn'(self) end,
 		}}:run(self.cachefile)
 		glslcode = assert(path(self.cachefile):read())
-	else
-		glslcode = require 'eqn'(self, true)
 	end
 
 	gl.glEnable(gl.GL_DEPTH_TEST)
