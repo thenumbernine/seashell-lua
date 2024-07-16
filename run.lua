@@ -20,6 +20,13 @@ local vec3f = require 'vec-ffi.vec3f'
 local vec4f = require 'vec-ffi.vec4f'
 local vector = require 'ffi.cpp.vector-lua'
 
+local cmdline = require 'ext.cmdline'.validate{
+	help = require 'ext.cmdline'.showHelpAndQuit,
+	force = {
+		desc = "Force rebuilding the equations, instead of using a cached copy.",
+	},
+}(...)
+
 local App = require 'imguiapp.withorbit'()
 App.title = 'seashell'
 App.viewUseBuiltinMatrixMath = true
@@ -69,7 +76,7 @@ function App:initGL(...)
 		fboScaleY = function() self:rebuildFBO() end,
 	}
 
-	local docache = true
+	local docache = not cmdline.force
 	local glslcode
 	if docache then
 		local Targets = require 'make.targets'
