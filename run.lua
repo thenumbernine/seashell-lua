@@ -2,9 +2,9 @@
 local table = require 'ext.table'
 local fromlua = require 'ext.fromlua'
 local path = require 'ext.path'
-local matrix_ffi = require 'matrix.ffi'
 local assertindex = require 'ext.assert'.index
 local ffi = require 'ffi'
+local matrix_ffi = require 'matrix.ffi'
 local template = require 'template'
 local sdl = require 'ffi.req' 'sdl'
 local gl = require 'gl'
