@@ -95,7 +95,7 @@ function App:initGL(...)
 
 	self.shader = GLProgram{
 		version = 'latest',
-		header = 'precision highp float;',
+		precision = 'best',
 		vertexCode = template([[
 #define M_PI <?=('%.50f'):format(math.pi)?>
 in vec2 vtx;
@@ -181,7 +181,7 @@ void main() {
 
 	self.skyboxShader = GLProgram{
 		version = 'latest',
-		header = 'precision highp float;',
+		precision = 'best',
 		vertexCode = [[
 in vec3 vtx;
 out vec3 tcv;
@@ -254,7 +254,7 @@ void main() {
 	self.updateFBOSceneObj = GLSceneObject{
 		program = {
 			version = 'latest',
-			header = 'precision highp float;',
+			precision = 'best',
 			vertexCode = [[
 in vec2 vtx;
 out vec2 tcv;
