@@ -25,6 +25,8 @@ local cmdline = require 'ext.cmdline'.validate{
 	force = {desc="Force rebuilding the equations, instead of using a cached copy."},
 	usecache = {desc="Force using the cached copy regardless of timestamp."},
 	size = {desc="grid size"},
+	useFBO = {desc="use FBO MSAA"},
+	fboScale = {desc="MSAA scale"},
 }(...)
 
 local App = require 'imguiapp.withorbit'()
@@ -57,16 +59,18 @@ function App:initGL(...)
 		gridWidth = cmdline.size or 2000,
 		gridHeight = cmdline.size or 2000,
 
-		fboScaleX = 2,
-		fboScaleY = 2,
+		fboScaleX = cmdline.fboScale or 2,
+		fboScaleY = cmdline.fboScale or 2,
 
-		useFBO = true,
+		useFBO = cmdline.useFBO,
 
 		-- chromatic aberration ratios
 		ratioR = .3,
 		ratioG = .2,
 		ratioB = .1,
 	}
+	if self.guivars.useFBO == nil then self.guivars.useFBO = true end
+
 	self.guivarnames = self.guivars:map(function(v,k,t) return k, #t+1 end):sort()
 
 	self.guicallbacks = {
