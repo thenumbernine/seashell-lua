@@ -24,6 +24,7 @@ local cmdline = require 'ext.cmdline'.validate{
 	help = require 'ext.cmdline'.showHelpAndQuit,
 	force = {desc="Force rebuilding the equations, instead of using a cached copy."},
 	usecache = {desc="Force using the cached copy regardless of timestamp."},
+	size = {desc="grid size"},
 }(...)
 
 local App = require 'imguiapp.withorbit'()
@@ -53,8 +54,8 @@ function App:initGL(...)
 		circleOfsY = 1,	-- keep this 1 to offset the initial circle to have its edge at the origin
 		circleOfsZ = 0,	-- meh?
 
-		gridWidth = 2000,
-		gridHeight = 2000,
+		gridWidth = cmdline.size or 2000,
+		gridHeight = cmdline.size or 2000,
 
 		fboScaleX = 2,
 		fboScaleY = 2,
