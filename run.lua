@@ -1,4 +1,14 @@
 #!/usr/bin/env luajit
+local cmdline = require 'ext.cmdline'.validate{
+	help = require 'ext.cmdline'.showHelpAndQuit,
+	gl = {desc='gl ffi lib'},
+	force = {desc="Force rebuilding the equations, instead of using a cached copy."},
+	usecache = {desc="Force using the cached copy regardless of timestamp."},
+	size = {desc="grid size"},
+	useFBO = {desc="use FBO MSAA"},
+	fboScale = {desc="MSAA scale"},
+}(...)
+
 local table = require 'ext.table'
 local fromlua = require 'ext.fromlua'
 local path = require 'ext.path'
@@ -7,7 +17,7 @@ local ffi = require 'ffi'
 local matrix_ffi = require 'matrix.ffi'
 local template = require 'template'
 local sdl = require 'ffi.req' 'sdl'
-local gl = require 'gl'
+local gl = require 'gl.setup'(cmdline.gl or 'OpenGL')
 local GLProgram = require 'gl.program'
 local GLFBO = require 'gl.fbo'
 local GLTex2D = require 'gl.tex2d'
@@ -19,15 +29,6 @@ local vec2f = require 'vec-ffi.vec2f'
 local vec3f = require 'vec-ffi.vec3f'
 local vec4f = require 'vec-ffi.vec4f'
 local vector = require 'ffi.cpp.vector-lua'
-
-local cmdline = require 'ext.cmdline'.validate{
-	help = require 'ext.cmdline'.showHelpAndQuit,
-	force = {desc="Force rebuilding the equations, instead of using a cached copy."},
-	usecache = {desc="Force using the cached copy regardless of timestamp."},
-	size = {desc="grid size"},
-	useFBO = {desc="use FBO MSAA"},
-	fboScale = {desc="MSAA scale"},
-}(...)
 
 local App = require 'imguiapp.withorbit'()
 App.title = 'seashell'
