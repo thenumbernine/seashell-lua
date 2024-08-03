@@ -462,13 +462,9 @@ function App:updateGUI()
 	end
 end
 
-function App:event(event, eventPtr)
-	App.super.event(self, event, eventPtr)
-	if eventPtr[0].type == sdl.SDL_WINDOWEVENT then
-		if eventPtr[0].window.event == sdl.SDL_WINDOWEVENT_SIZE_CHANGED then
-			self:rebuildFBO()
-		end
-	end
+function App:resize()
+	App.super.resize(self)
+	self:rebuildFBO()
 end
 
 return App():run()
