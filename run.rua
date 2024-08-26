@@ -27,7 +27,6 @@ local vector = require 'ffi.cpp.vector-lua'
 
 local App = require 'imguiapp.withorbit'()
 App.title = 'seashell'
-App.viewUseBuiltinMatrixMath = true
 
 -- used here and eqn.lua for where to read/write the eqn cache
 App.cachefile = 'cached-eqns.glsl'
