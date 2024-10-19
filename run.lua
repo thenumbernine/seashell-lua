@@ -12,7 +12,7 @@ local cmdline = require 'ext.cmdline'.validate{
 local table = require 'ext.table'
 local fromlua = require 'ext.fromlua'
 local path = require 'ext.path'
-local assertindex = require 'ext.assert'.index
+local assert = require 'ext.assert'
 local ffi = require 'ffi'
 local matrix_ffi = require 'matrix.ffi'
 local template = require 'template'
@@ -447,7 +447,7 @@ function App:updateGUI()
 	if ig.igBeginMainMenuBar() then
 		if ig.igBeginMenu'Settings' then
 			for _,k in ipairs(self.guivarnames) do
-				if assertindex(typeHandlers, type(self.guivars[k]))(self, k) then
+				if assert.index(typeHandlers, type(self.guivars[k]))(self, k) then
 					local callback = self.guicallbacks[k]
 					if callback then
 						callback()
