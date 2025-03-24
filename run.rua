@@ -57,7 +57,7 @@ App.initGL = [:, ...] do
 		fboScaleX = cmdline.fboScale or 2,
 		fboScaleY = cmdline.fboScale or 2,
 
-		useFBO = cmdline.useFBO == nil ? true : cmdline.useFBO,	-- TODO should ?? fail upon nil or false?  same with ?.
+		useFBO = cmdline.useFBO ?? true,
 
 		-- chromatic aberration ratios
 		ratioR = .3,
