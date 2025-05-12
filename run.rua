@@ -437,7 +437,7 @@ App.updateGUI = [:] do
 			for _,k in ipairs(self.guivarnames) do
 				local v = self.guivars[k]
 				-- TODO language issue, I can't just call these, they have to be assigned somewhere
-				I(assert.index(typeHandlers, type(v))(self, k) and self.guicallbacks?[k]?())
+				I(typeHandlers![type(v)](self, k) and self.guicallbacks?[k]?())
 			end
 			ig.igColorPicker3('background color', self.bgcolor.s, 0)
 			ig.igEndMenu()
