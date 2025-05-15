@@ -25,7 +25,7 @@ local vec3f = require 'vec-ffi.vec3f'
 local vec4f = require 'vec-ffi.vec4f'
 local vector = require 'ffi.cpp.vector-lua'
 
-local App = require 'imguiapp.withorbit'()
+local App = require 'imgui.appwithorbit'()
 App.title = 'seashell'
 
 -- used here and eqn.lua for where to read/write the eqn cache

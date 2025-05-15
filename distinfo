@@ -25,7 +25,6 @@ files = {
 		'gl',
 		'glapp',
 		'imgui',
-		'imguiapp',
 		'make',
 		'complex',
 		'bignumber',
@@ -48,8 +47,8 @@ luajitLibs = {
 		'cimgui_sdl',	-- /usr/local/lib/libcimgui_sdl-1.87dock.so
 	},
 	osx = {
-		'sdl',
-		'libpng',
-		'libimgui',
+		'SDL2',
+		'png',
+		'cimgui_sdl',
 	},
 }
