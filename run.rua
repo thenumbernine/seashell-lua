@@ -31,7 +31,7 @@ App.title = 'seashell'
 -- used here and eqn.lua for where to read/write the eqn cache
 App.cachefile = 'cached-eqns.glsl'
 
-App.initGL = [:, ...] do
+App.initGL = |:, ...| do
 	App.super.initGL(self, ...)
 
 	self.view.zfar = 1000
@@ -64,13 +64,13 @@ App.initGL = [:, ...] do
 		ratioG = .2,
 		ratioB = .1,
 	}
-	self.guivarnames = self.guivars:map([v,k,t](k, #t+1)):sort()
+	self.guivarnames = self.guivars:map(|v,k,t|(k, #t+1)):sort()
 
 	self.guicallbacks = {
-		gridWidth = [] self:rebuildObj(),
-		gridHeight = [] self:rebuildObj(),
-		fboScaleX = [] self:rebuildFBO(),
-		fboScaleY = [] self:rebuildFBO(),
+		gridWidth = || self:rebuildObj(),
+		gridHeight = || self:rebuildObj(),
+		fboScaleX = || self:rebuildFBO(),
+		fboScaleY = || self:rebuildFBO(),
 	}
 
 	local glslcode
@@ -83,7 +83,7 @@ App.initGL = [:, ...] do
 		Targets{verbose=true, {
 			dsts = {self.cachefile},
 			srcs = {'eqn.lua'},		-- cache as long as this file hasn't changed
-			rule = [] require 'eqn'(self),
+			rule = || require 'eqn'(self),
 		}}:run(self.cachefile)
 		glslcode = assert(path(self.cachefile):read())
 	end
@@ -289,7 +289,7 @@ void main() {
 	self:rebuildObj()
 end
 
-App.rebuildFBO = [:] do
+App.rebuildFBO = |:| do
 	local fboWidth = self.width * self.guivars.fboScaleX
 	local fboHeight = self.height * self.guivars.fboScaleY
 	self.fboTex = GLTex2D{
@@ -311,7 +311,7 @@ App.rebuildFBO = [:] do
 	}:unbind()
 end
 
-App.rebuildObj = [:] do
+App.rebuildObj = |:| do
 	local m = self.guivars.gridWidth
 	local n = self.guivars.gridHeight
 
@@ -369,7 +369,7 @@ App.rebuildObj = [:] do
 end
 
 -- assumes the viewport and self.view is already set up
-App.drawScene = [:] do
+App.drawScene = |:| do
 	gl.glClearColor(self.bgcolor:unpack())
 	gl.glClear(gl.GL_COLOR_BUFFER_BIT | gl.GL_DEPTH_BUFFER_BIT)
 
@@ -396,13 +396,13 @@ App.drawScene = [:] do
 	self.skyTex:unbind()
 end
 
-App.update = [:] do
+App.update = |:| do
 	if not self.guivars.useFBO then
 		self:drawScene()
 	else
 		self.fbo:draw{
 			viewport = {0, 0, self.fbo.width, self.fbo.height},	-- seems the fbo could figure this out itself ...
-			callback = [] self:drawScene(),
+			callback = || self:drawScene(),
 		}
 
 		-- generate mipmap
@@ -424,13 +424,13 @@ glreport'here'
 end
 
 local typeHandlers = {
-	boolean = [:, k] ig.luatableCheckbox(k, self.guivars, k),
-	number = [:, k] ig.luatableInputFloatAsText(k, self.guivars, k),
+	boolean = |:, k| ig.luatableCheckbox(k, self.guivars, k),
+	number = |:, k| ig.luatableInputFloatAsText(k, self.guivars, k),
 }
 
-local I = [...]...
+local I = |...|...
 
-App.updateGUI = [:] do
+App.updateGUI = |:| do
 	local mesh = self.mesh
 	if ig.igBeginMainMenuBar() then
 		if ig.igBeginMenu'Settings' then
@@ -446,7 +446,7 @@ App.updateGUI = [:] do
 	end
 end
 
-App.resize = [:] do
+App.resize = |:| do
 	App.super.resize(self)
 	self:rebuildFBO()
 end
