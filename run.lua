@@ -16,7 +16,6 @@ local assert = require 'ext.assert'
 local ffi = require 'ffi'
 local matrix_ffi = require 'matrix.ffi'
 local template = require 'template'
-local sdl = require 'sdl'
 local gl = require 'gl.setup'(cmdline.gl or 'OpenGL')
 local GLProgram = require 'gl.program'
 local GLFBO = require 'gl.fbo'
