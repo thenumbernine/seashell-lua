@@ -18,7 +18,7 @@ local matrix_ffi = require 'matrix.ffi'
 local template = require 'template'
 local gl = require 'gl.setup'(cmdline.gl or 'OpenGL')
 local GLProgram = require 'gl.program'
-local GLFBO = require 'gl.fbo'
+local GLFramebuffer = require 'gl.framebuffer'
 local GLTex2D = require 'gl.tex2d'
 local GLTexCube = require 'gl.texcube'
 local GLSceneObject = require 'gl.sceneobject'
@@ -316,7 +316,7 @@ function App:rebuildFBO()
 		magFilter = gl.GL_LINEAR,
 	}:unbind()
 
-	self.fbo = GLFBO{
+	self.fbo = GLFramebuffer{
 		width = fboWidth,
 		height = fboHeight,
 		useDepth = true,
