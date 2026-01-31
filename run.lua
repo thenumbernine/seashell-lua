@@ -14,7 +14,6 @@ local fromlua = require 'ext.fromlua'
 local path = require 'ext.path'
 local assert = require 'ext.assert'
 local ffi = require 'ffi'
-local matrix_ffi = require 'matrix.ffi'
 local template = require 'template'
 local gl = require 'gl.setup'(cmdline.gl or 'OpenGL')
 local GLProgram = require 'gl.program'
@@ -27,6 +26,7 @@ local ig = require 'imgui'
 local vec2f = require 'vec-ffi.vec2f'
 local vec3f = require 'vec-ffi.vec3f'
 local vec4f = require 'vec-ffi.vec4f'
+local vec4x4f = require 'vec-ffi.vec4x4f'
 local vector = require 'ffi.cpp.vector-lua'
 
 local App = require 'imgui.appwithorbit'()
@@ -254,7 +254,7 @@ void main() {
 		},
 	}
 
-	self.fboProjMat = matrix_ffi({4,4}, 'float'):zeros():setOrtho(0, 1, 0, 1, -1, 1)
+	self.fboProjMat = vec4x4f():setOrtho(0, 1, 0, 1, -1, 1)
 	self.updateFBOSceneObj = GLSceneObject{
 		program = {
 			version = 'latest',
