@@ -399,8 +399,8 @@ function App:drawScene()
 
 	local shader = self.shader
 	shader:use()
-	gl.glUniformMatrix4fv(shader.uniforms.mvMat.loc, 1, gl.GL_FALSE, self.view.mvMat.ptr)
-	gl.glUniformMatrix4fv(shader.uniforms.projMat.loc, 1, gl.GL_FALSE, self.view.projMat.ptr)
+	gl.glUniformMatrix4fv(shader.uniforms.mvMat.loc, 1, gl.GL_TRUE, self.view.mvMat.ptr)
+	gl.glUniformMatrix4fv(shader.uniforms.projMat.loc, 1, gl.GL_TRUE, self.view.projMat.ptr)
 	shader:setUniforms(self.guivars)
 	shader:useNone()
 
