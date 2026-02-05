@@ -314,7 +314,7 @@ App.rebuildObj = |:| do
 	local m = self.guivars.gridWidth
 	local n = self.guivars.gridHeight
 
-	self.vtxVec = vector'vec2f_t'
+	self.vtxVec = vector'vec2f'
 	self.vtxVec:resize((m + 1) * (n + 1))
 	self.indexVec = vector'int'
 	self.indexVec:resize(m * n * 6)
