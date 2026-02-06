@@ -4,48 +4,11 @@
 		<meta charset='utf-8'>
 		<title>Symbolic Lua Output</title>
 		<script type='text/javascript' src='./tryToFindMathJax.js'></script>
-	
-		<style>
-:root {
-	--font-color: #000000;
-	--bg-color: rgb(243,243,243);
-}
-[data-theme="dark"] {
-	--font-color: #ffffff;
-	--bg-color: #000000;
-}
-
-body {
-	overflow : scroll;
-	background : var(--bg-color);
-	color : var(--font-color);
-}
-
-/* desktop chrome inputs have white background black font.  mobile chrome inputs have clear background black font. */
-input {
-	background : var(--bg-color);
-	color : var(--font-color);
-}
-		</style>
-		<script type='text/javascript'>
-//https://stackoverflow.com/questions/56300132/how-to-override-css-prefers-color-scheme-setting
-window.addEventListener('load', () => {
-	let darkMode = false;
-	if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-		darkMode = true;
-	}
-	if (darkMode) {
-		document.documentElement.setAttribute('data-theme', 'dark');
-	} else {
-		document.documentElement.removeAttribute('data-theme', 'dark');
-	}
-});
-		</script>
-
-
+		<link rel='stylesheet' href='./darkmode.css'></link>
+		<script type='text/javascript' src='./darkmode.js'></script>
 	</head>
 	<body>
-${{\exp\left({{{{\left({{{{o}} {{\left({{1}{-{v}}}\right)}}} + {{{p}} {{v}}}}\right)}} {{I}}} + {{{{\star e_y}}} \cdot {{2}} {{π}} \cdot {{n}} {{v}}}}\right)}} {{\left({{{{\exp\left({{{{\star e_x}}} \cdot {{2}} {{π}} \cdot {{u}}}\right)}} {{{e_x}}} \cdot {{\left({{1} + {{{m}} {{\cos\left( {{{2}} {{π}} \cdot {{j}} {{u}}}\right)}}} + {{{k}} {{\cos\left( {{{2}} {{π}} \cdot {{l}} {{v}}}\right)}}}}\right)}}} + {\vec{v}}}\right)}}$<br><br>
-$\left[\begin{array}{c} {{\exp\left({{o} + {{{p}} {{v}}}{-{{{o}} {{v}}}}}\right)}} {{\left({{q} + {\cos\left( {{{2}} {{u}} {{π}}}\right)} + {{{m}} {{\cos\left( {{{2}} {{u}} {{π}}}\right)}} {{\cos\left( {{{2}} {{j}} {{u}} {{π}}}\right)}}} + {{{k}} {{\cos\left( {{{2}} {{u}} {{π}}}\right)}} {{\cos\left( {{{2}} {{l}} {{v}} {{π}}}\right)}}}}\right)}}\\ {{\exp\left({{o} + {{{p}} {{v}}}{-{{{o}} {{v}}}}}\right)}} {{\left({{{{r}} {{\cos\left( {{{2}} {{n}} {{v}} {{π}}}\right)}}}{-{{{a}} {{\sin\left( {{{2}} {{n}} {{v}} {{π}}}\right)}}}} + {{{\cos\left( {{{2}} {{n}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}}} + {{{m}} {{\cos\left( {{{2}} {{n}} {{v}} {{π}}}\right)}} {{\cos\left( {{{2}} {{j}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}}} + {{{k}} {{\cos\left( {{{2}} {{n}} {{v}} {{π}}}\right)}} {{\cos\left( {{{2}} {{l}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}}}}\right)}}\\ {{\exp\left({{o} + {{{p}} {{v}}}{-{{{o}} {{v}}}}}\right)}} {{\left({{{{r}} {{\sin\left( {{{2}} {{n}} {{v}} {{π}}}\right)}}} + {{{a}} {{\cos\left( {{{2}} {{n}} {{v}} {{π}}}\right)}}} + {{{\sin\left( {{{2}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{n}} {{v}} {{π}}}\right)}}} + {{{m}} {{\cos\left( {{{2}} {{j}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{n}} {{v}} {{π}}}\right)}}} + {{{k}} {{\cos\left( {{{2}} {{l}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{n}} {{v}} {{π}}}\right)}}}}\right)}}\end{array}\right]$<br><br>
+${{\exp\left({{{{\left({{{{l}} {{\left({{1}{-{v}}}\right)}}} + {{{m}} {{v}}}}\right)}} {{I}}} + {{{{\star e_y}}} \cdot {{2}} {{π}} \cdot {{k}} {{v}}}}\right)}} {{\left({{{{\exp\left({{{{\star e_x}}} \cdot {{2}} {{π}} \cdot {{u}}}\right)}} {{{e_x}}} \cdot {{\left({{1} + {{{g}} {{\cos\left( {{{2}} {{π}} \cdot {{h}} {{u}}}\right)}}} + {{{i}} {{\cos\left( {{{2}} {{π}} \cdot {{j}} {{v}}}\right)}}}}\right)}}} + {\vec{v}}}\right)}}$<br><br>
+$\left[\begin{matrix}  {{\exp\left({{l} + {{{m}} {{v}}}{-{{{l}} {{v}}}}}\right)}} {{\left({{n} + {\cos\left( {{{2}} {{u}} {{π}}}\right)} + {{{g}} {{\cos\left( {{{2}} {{u}} {{π}}}\right)}} {{\cos\left( {{{2}} {{h}} {{u}} {{π}}}\right)}}} + {{{i}} {{\cos\left( {{{2}} {{u}} {{π}}}\right)}} {{\cos\left( {{{2}} {{j}} {{v}} {{π}}}\right)}}}}\right)}} \\  {{\exp\left({{l} + {{{m}} {{v}}}{-{{{l}} {{v}}}}}\right)}} {{\left({{{{o}} {{\cos\left( {{{2}} {{k}} {{v}} {{π}}}\right)}}}{-{{{p}} {{\sin\left( {{{2}} {{k}} {{v}} {{π}}}\right)}}}} + {{{\cos\left( {{{2}} {{k}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}}} + {{{g}} {{\cos\left( {{{2}} {{k}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}} {{\cos\left( {{{2}} {{h}} {{u}} {{π}}}\right)}}} + {{{i}} {{\cos\left( {{{2}} {{k}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}} {{\cos\left( {{{2}} {{j}} {{v}} {{π}}}\right)}}}}\right)}} \\  {{\exp\left({{l} + {{{m}} {{v}}}{-{{{l}} {{v}}}}}\right)}} {{\left({{{{o}} {{\sin\left( {{{2}} {{k}} {{v}} {{π}}}\right)}}} + {{{p}} {{\cos\left( {{{2}} {{k}} {{v}} {{π}}}\right)}}} + {{{\sin\left( {{{2}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{k}} {{v}} {{π}}}\right)}}} + {{{g}} {{\cos\left( {{{2}} {{h}} {{u}} {{π}}}\right)}} {{\sin\left( {{{2}} {{k}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}}} + {{{i}} {{\cos\left( {{{2}} {{j}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{k}} {{v}} {{π}}}\right)}} {{\sin\left( {{{2}} {{u}} {{π}}}\right)}}}}\right)}}\end{matrix}\right]$<br><br>
 	</body>
 </html>

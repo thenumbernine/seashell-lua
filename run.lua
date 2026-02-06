@@ -21,7 +21,6 @@ local GLFramebuffer = require 'gl.framebuffer'
 local GLTex2D = require 'gl.tex2d'
 local GLTexCube = require 'gl.texcube'
 local GLSceneObject = require 'gl.sceneobject'
-local glreport = require 'gl.report'
 local ig = require 'imgui'
 local vec2f = require 'vec-ffi.vec2f'
 local vec3f = require 'vec-ffi.vec3f'
@@ -433,7 +432,6 @@ function App:update()
 		self.updateFBOSceneObj:draw()
 	end
 	App.super.update(self)
-glreport'here'
 end
 
 local typeHandlers = {
