@@ -58,6 +58,7 @@ deps = {
 	"gl",
 	"imgui",
 	"make",
+	"stl",
 	"symmath",
 	"template",
 	"vec-ffi",
