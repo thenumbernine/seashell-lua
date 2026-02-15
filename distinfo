@@ -3,7 +3,7 @@
 --------------------------------------------
 
 name = "seashell"
-luaArgs = {'run.lua'}
+luaArgs = 'run.lua usecache'
 files = {
 	"README.md",
 	"cached-eqns.glsl",
