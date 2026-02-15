@@ -54,7 +54,6 @@ files = {
 }
 deps = {
 	"ext",
-	"ffi",
 	"gl",
 	"imgui",
 	"make",
